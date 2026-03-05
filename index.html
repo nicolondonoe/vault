@@ -12,10 +12,28 @@
     --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;--border:#2a2a3d;
     --accent:#7c6dfa;--accent2:#fa6d9e;--accent3:#6dfabd;--accent4:#facc6d;
     --text:#e8e8f0;--muted:#6b6b8a;--danger:#fa6d6d;--green:#6dfabd;
+    --grid-line:rgba(124,109,250,0.03);
+    --table-hover:rgba(255,255,255,0.02);
+    --table-border:rgba(255,255,255,0.03);
+    --modal-bg:rgba(0,0,0,0.7);
+    --card-glow:rgba(124,109,250,0.12);
   }
+  body.light {
+    --bg:#f4f4f8;--surface:#ffffff;--surface2:#f0f0f6;--border:#e0e0ec;
+    --text:#1a1a2e;--muted:#8888a8;--danger:#e05555;--green:#1a9e6e;
+    --grid-line:rgba(124,109,250,0.04);
+    --table-hover:rgba(0,0,0,0.02);
+    --table-border:rgba(0,0,0,0.04);
+    --modal-bg:rgba(0,0,0,0.4);
+    --card-glow:rgba(124,109,250,0.06);
+  }
+  /* Theme toggle */
+  .theme-toggle{background:var(--surface2);border:1px solid var(--border);border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:6px;padding:5px 10px;font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;transition:all 0.15s;margin:0 12px 8px;}
+  .theme-toggle:hover{color:var(--text);border-color:var(--accent);}
+  .theme-toggle-icon{font-size:14px;}
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
-  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,109,250,0.03)1px,transparent 1px),linear-gradient(90deg,rgba(124,109,250,0.03)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background 0.2s,color 0.2s;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--grid-line)1px,transparent 1px),linear-gradient(90deg,var(--grid-line)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
   .app{position:relative;z-index:1;display:flex;min-height:100vh;}
   .sidebar{width:220px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;left:0;bottom:0;}
   .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.5px;padding:0 24px 28px;border-bottom:1px solid var(--border);color:var(--text);}
@@ -42,7 +60,7 @@
   .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:28px;}
   .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
   .stat-card:hover{border-color:var(--accent);}
-  .stat-card::after{content:'';position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle at top right,rgba(124,109,250,0.12),transparent 70%);}
+  .stat-card::after{content:'';position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle at top right,var(--card-glow),transparent 70%);}
   .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
   .stat-value{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;}
   .stat-change{font-size:11px;margin-top:6px;}
@@ -69,9 +87,9 @@
   /* Table */
   table{width:100%;border-collapse:collapse;}
   th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:10px 20px;border-bottom:1px solid var(--border);}
-  td{padding:11px 20px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.03);}
+  td{padding:11px 20px;font-size:13px;border-bottom:1px solid var(--table-border);}
   tr:last-child td{border-bottom:none;}
-  tr:hover td{background:rgba(255,255,255,0.02);}
+  tr:hover td{background:var(--table-hover);}
   /* Badges */
   .badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500;}
   .badge.stock{background:rgba(124,109,250,0.2);color:var(--accent);}
@@ -81,7 +99,7 @@
   .badge.expense{background:rgba(250,109,109,0.2);color:var(--danger);}
   .positive{color:var(--green);}.negative{color:var(--danger);}
   /* Modal */
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:var(--modal-bg);backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center;}
   .modal-overlay.open{display:flex;}
   .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:460px;max-width:95vw;animation:modalIn 0.2s ease;max-height:90vh;overflow-y:auto;}
   @keyframes modalIn{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
@@ -143,10 +161,117 @@
   .sync-status{font-size:10px;color:var(--muted);text-align:center;margin-top:6px;min-height:14px;}
   .sync-status.ok{color:var(--accent3);}
   .sync-status.err{color:var(--danger);}
+  /* Confirm dialog */
+  .confirm-overlay{display:none;position:fixed;inset:0;background:var(--modal-bg);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center;}
+  .confirm-overlay.open{display:flex;}
+  .confirm-dialog{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:360px;max-width:90vw;animation:modalIn 0.2s ease;}
+  .confirm-icon{font-size:32px;margin-bottom:12px;}
+  .confirm-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:8px;}
+  .confirm-msg{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:24px;}
+  /* ── MOBILE TOP BAR ─────────────────────────────────────────────────────── */
+  .mobile-topbar{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:var(--surface);border-bottom:1px solid var(--border);z-index:50;align-items:center;justify-content:space-between;padding:0 16px;}
+  .mobile-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--text);}
+  .mobile-logo span{color:var(--accent);}
+  .mobile-topbar-right{display:flex;align-items:center;gap:10px;}
+  .mobile-sync-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
+  .mobile-sync-dot.connected{background:var(--accent3);}
+  .mobile-theme-btn{background:transparent;border:none;font-size:18px;cursor:pointer;padding:4px;color:var(--muted);}
+
+  /* ── BOTTOM NAV ──────────────────────────────────────────────────────────── */
+  .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:60px;background:var(--surface);border-top:1px solid var(--border);z-index:50;align-items:stretch;}
+  .bottom-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:var(--muted);transition:color 0.15s;font-size:10px;letter-spacing:0.3px;border:none;background:transparent;font-family:'DM Mono',monospace;padding:6px 0;}
+  .bottom-nav-item:active{background:var(--surface2);}
+  .bottom-nav-item.active{color:var(--accent);}
+  .bottom-nav-icon{font-size:18px;line-height:1;}
+
+  /* ── RESPONSIVE BREAKPOINTS ─────────────────────────────────────────────── */
+  @media(max-width:768px){
+    .sidebar{display:none;}
+    .mobile-topbar{display:flex;}
+    .bottom-nav{display:flex;}
+    .main{margin-left:0;padding:16px;padding-top:72px;padding-bottom:76px;}
+    /* Stack stat cards 2 per row on mobile */
+    .stat-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+    .stat-card{padding:14px;}
+    .stat-value{font-size:18px;}
+    .stat-label{font-size:10px;}
+    /* Charts single column */
+    .chart-grid{grid-template-columns:1fr;gap:12px;margin-bottom:16px;}
+    .chart-card.wide{grid-column:1;}
+    .chart-wrap{height:180px;}
+    .chart-wrap.tall{height:220px;}
+    /* Page header stack */
+    .page-header{flex-direction:column;align-items:flex-start;margin-bottom:16px;gap:8px;}
+    .page-title{font-size:22px;}
+    /* Tables scroll horizontally */
+    .data-card{overflow-x:auto;}
+    table{min-width:520px;}
+    /* Modal full screen on mobile */
+    .modal-overlay{align-items:flex-end;}
+    .modal{width:100%;max-width:100%;border-radius:20px 20px 0 0;padding:20px;max-height:88vh;}
+    /* Timeframe bar wraps */
+    .tf-bar{flex-wrap:wrap;}
+    .tf-btn{font-size:10px;padding:4px 8px;}
+    /* Header actions stack */
+    .data-card-header{flex-direction:column;align-items:flex-start;}
+    .header-actions{width:100%;justify-content:flex-start;}
+    /* Form rows single col on very small */
+    .fx-bar{font-size:11px;}
+    /* Page sub hidden on mobile to save space */
+    .page-sub{display:none;}
+  }
+
+  @media(max-width:480px){
+    .stat-grid{grid-template-columns:1fr 1fr;gap:8px;}
+    .stat-value{font-size:16px;}
+    .form-row{grid-template-columns:1fr;}
+    .main{padding:12px;padding-top:68px;padding-bottom:76px;}
+  }
+
+  /* iPad portrait (768–1024px) */
+  @media(min-width:769px) and (max-width:1024px){
+    .sidebar{width:180px;}
+    .main{margin-left:180px;padding:20px;}
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+    .chart-grid{grid-template-columns:1fr;}
+    .chart-card.wide{grid-column:1;}
+  }
 </style>
 </head>
 <body>
 <div class="app">
+
+  <!-- MOBILE TOP BAR -->
+  <div class="mobile-topbar">
+    <div class="mobile-logo">vault<span>.</span></div>
+    <div class="mobile-topbar-right">
+      <div class="mobile-sync-dot" id="mobile-sync-dot" title="Google Drive"></div>
+      <button class="mobile-theme-btn" onclick="toggleTheme()" id="mobile-theme-btn">☀</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="bottom-nav-item active" id="bn-dashboard" onclick="navigate('dashboard')">
+      <span class="bottom-nav-icon">◈</span>Home
+    </button>
+    <button class="bottom-nav-item" id="bn-accounts" onclick="navigate('accounts')">
+      <span class="bottom-nav-icon">◉</span>Accounts
+    </button>
+    <button class="bottom-nav-item" id="bn-stocks" onclick="navigate('stocks')">
+      <span class="bottom-nav-icon">◈</span>Stocks
+    </button>
+    <button class="bottom-nav-item" id="bn-crypto" onclick="navigate('crypto')">
+      <span class="bottom-nav-icon">◇</span>Crypto
+    </button>
+    <button class="bottom-nav-item" id="bn-cashflow" onclick="navigate('cashflow')">
+      <span class="bottom-nav-icon">◫</span>Cash
+    </button>
+    <button class="bottom-nav-item" id="bn-settings" onclick="navigate('settings')">
+      <span class="bottom-nav-icon">⚙</span>Settings
+    </button>
+  </nav>
+
   <aside class="sidebar">
     <div class="logo">vault<span>.</span></div>
     <nav>
@@ -157,6 +282,10 @@
       <div class="nav-item" onclick="navigate('cashflow')"><span class="nav-icon">◫</span> Cash Flow</div>
       <div class="nav-item" onclick="navigate('settings')"><span class="nav-icon">⚙</span> Settings</div>
     </nav>
+    <button class="theme-toggle" onclick="toggleTheme()" id="theme-toggle-btn">
+      <span class="theme-toggle-icon" id="theme-icon">☀</span>
+      <span id="theme-label">Light Mode</span>
+    </button>
     <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.</div>
     <div class="sync-bar">
       <button class="sync-btn" id="sync-btn" onclick="handleSyncClick()">
@@ -286,6 +415,13 @@
       <div class="settings-section">
         <div class="settings-section-title">Currency</div>
         <div class="settings-row">
+          <div><div class="settings-row-label">Appearance</div><div class="settings-row-sub">Switch between dark and light mode</div></div>
+          <button class="theme-toggle" onclick="toggleTheme()" style="margin:0;" id="theme-toggle-settings">
+            <span class="theme-toggle-icon" id="theme-icon-settings">☀</span>
+            <span id="theme-label-settings">Light Mode</span>
+          </button>
+        </div>
+        <div class="settings-row">
           <div><div class="settings-row-label">Display Currency</div><div class="settings-row-sub">All values shown in this currency</div></div>
           <div class="currency-pill">
             <button class="currency-opt" id="cur-COP" onclick="setCurrency('COP')">COP</button>
@@ -349,6 +485,19 @@
     </div>
 
   </main>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-dialog">
+    <div class="confirm-icon" id="confirm-icon">🗑</div>
+    <div class="confirm-title" id="confirm-title">Remove item?</div>
+    <div class="confirm-msg" id="confirm-msg">This action cannot be undone.</div>
+    <div class="confirm-actions">
+      <button class="btn secondary" onclick="closeConfirm()">Cancel</button>
+      <button class="btn danger" id="confirm-ok-btn" onclick="confirmOk()">Remove</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal -->
@@ -490,12 +639,19 @@ function showFxBars(){
 function navigate(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
+  // Sidebar nav
   document.querySelectorAll('.nav-item').forEach(n=>{
     const t=n.textContent.toLowerCase();
     if(page==='dashboard'&&t.includes('dash'))n.classList.add('active');
     else if(page!=='dashboard'&&t.includes(page.slice(0,4)))n.classList.add('active');
   });
+  // Bottom nav
+  const bn=document.getElementById('bn-'+page);
+  if(bn)bn.classList.add('active');
+  // Scroll to top on mobile
+  window.scrollTo({top:0,behavior:'smooth'});
   refreshAll();
   if(page==='settings')updateSettingsUI();
 }
@@ -504,10 +660,11 @@ function navigate(page){
 let charts={};
 const PAL=['#7c6dfa','#fa6d9e','#6dfabd','#facc6d','#6dbefa','#fa9c6d','#c46dfa','#6dfae5'];
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
-
-// Shared chart defaults
-const gridColor='rgba(255,255,255,0.04)';
-const tickStyle={color:'#6b6b8a',font:{family:'DM Mono',size:11}};
+function getGridColor(){return document.body.classList.contains('light')?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.04)';}
+function getTickColor(){return document.body.classList.contains('light')?'#8888a8':'#6b6b8a';}
+function getLegendColor(){return document.body.classList.contains('light')?'#1a1a2e':'#e8e8f0';}
+function getBorderColor(){return document.body.classList.contains('light')?'#f0f0f6':'#12121a';}
+function getTickStyle(){return {color:getTickColor(),font:{family:'DM Mono',size:11}};}
 
 function buildAllocationChart(){
   destroyChart('allocation');
@@ -521,7 +678,7 @@ function buildAllocationChart(){
   if(stocks){labels.push('Stocks/ETFs');data.push(stocks);colors.push('#7c6dfa');}
   if(crypto){labels.push('Crypto');data.push(crypto);colors.push('#fa6d9e');}
   if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
-  charts['allocation']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#12121a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12},padding:14}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'65%'}});
+  charts['allocation']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:14}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'65%'}});
 }
 
 function buildAssetsChart(){
@@ -532,7 +689,7 @@ function buildAssetsChart(){
   const data=[...db.stocks.map(h=>(+h.shares||0)*(+h.currentPrice||0)*fxRate),...db.crypto.map(h=>(+h.currentValueUSD||0)*fxRate)];
   const colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
-  charts['assets']=new Chart(ctx,{type:'pie',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#12121a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}}}});
+  charts['assets']=new Chart(ctx,{type:'pie',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}}}});
 }
 
 // Generate synthetic monthly data points for a set of holdings
@@ -576,7 +733,7 @@ function buildNetWorthChart(){
   const {labels,values}=generateTimelineData(allHoldings,tf);
   const cash=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
   const converted=values.map(v=>v*fxRate+cash);
-  charts['networth']=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Net Worth',data:converted,borderColor:'#7c6dfa',backgroundColor:'rgba(124,109,250,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointBackgroundColor:'#7c6dfa',pointRadius:3,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  charts['networth']=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Net Worth',data:converted,borderColor:'#7c6dfa',backgroundColor:'rgba(124,109,250,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointBackgroundColor:'#7c6dfa',pointRadius:3,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 function buildStocksTimeline(){
@@ -590,7 +747,7 @@ function buildStocksTimeline(){
   charts['stocks-timeline']=new Chart(ctx,{type:'line',data:{labels,datasets:[
     {label:'Portfolio Value',data:values.map(v=>v*fxRate),borderColor:'#7c6dfa',backgroundColor:'rgba(124,109,250,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointRadius:3},
     {label:'Cost Basis',data:costs.map(v=>v*fxRate),borderColor:'#6b6b8a',borderDash:[4,4],borderWidth:1.5,fill:false,tension:0.4,pointRadius:0}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getLegendColor(),font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 function buildStocksPie(){
@@ -601,7 +758,7 @@ function buildStocksPie(){
   const data=db.stocks.map(h=>(+h.shares||0)*(+h.currentPrice||0)*fxRate);
   const colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!labels.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
-  charts['stocks-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#12121a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
+  charts['stocks-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
 }
 
 function buildStocksGainLoss(){
@@ -611,7 +768,7 @@ function buildStocksGainLoss(){
   const labels=db.stocks.map(h=>h.ticker);
   const data=db.stocks.map(h=>((+h.shares||0)*(+h.currentPrice||0)-(+h.shares||0)*(+h.avgCost||0))*fxRate);
   const colors=data.map(v=>v>=0?'rgba(109,250,189,0.7)':'rgba(250,109,109,0.7)');
-  charts['stocks-gainloss']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Gain/Loss',data,backgroundColor:colors,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  charts['stocks-gainloss']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Gain/Loss',data,backgroundColor:colors,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 function buildCryptoTimeline(){
@@ -625,7 +782,7 @@ function buildCryptoTimeline(){
   charts['crypto-timeline']=new Chart(ctx,{type:'line',data:{labels,datasets:[
     {label:'Portfolio Value',data:values.map(v=>v*fxRate),borderColor:'#fa6d9e',backgroundColor:'rgba(250,109,158,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointRadius:3},
     {label:'Cost Basis',data:costs.map(v=>v*fxRate),borderColor:'#6b6b8a',borderDash:[4,4],borderWidth:1.5,fill:false,tension:0.4,pointRadius:0}
-  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getLegendColor(),font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 function buildCryptoPie(){
@@ -636,7 +793,7 @@ function buildCryptoPie(){
   const data=db.crypto.map(h=>(+h.currentValueUSD||0)*fxRate);
   const colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!labels.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
-  charts['crypto-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#12121a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
+  charts['crypto-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
 }
 
 function buildCryptoGainLoss(){
@@ -646,7 +803,7 @@ function buildCryptoGainLoss(){
   const labels=db.crypto.map(h=>h.symbol);
   const data=db.crypto.map(h=>((+h.currentValueUSD||0)-(+h.investedUSD||0))*fxRate);
   const colors=data.map(v=>v>=0?'rgba(109,250,189,0.7)':'rgba(250,109,109,0.7)');
-  charts['crypto-gainloss']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Gain/Loss',data,backgroundColor:colors,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  charts['crypto-gainloss']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Gain/Loss',data,backgroundColor:colors,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 function buildCashFlowChart(){
@@ -659,7 +816,7 @@ function buildCashFlowChart(){
   for(let i=months_n;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({label:d.toLocaleString('default',{month:'short',year:'2-digit'}),year:d.getFullYear(),month:d.getMonth()});}
   const income=months.map(m=>db.transactions.filter(t=>t.type==='income'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+(+t.amount||0),0));
   const expense=months.map(m=>db.transactions.filter(t=>t.type==='expense'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+(+t.amount||0),0));
-  charts['cashflow']=new Chart(ctx,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Income',data:income,backgroundColor:'rgba(109,250,189,0.7)',borderRadius:6,borderSkipped:false},{label:'Expenses',data:expense,backgroundColor:'rgba(250,109,109,0.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  charts['cashflow']=new Chart(ctx,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Income',data:income,backgroundColor:'rgba(109,250,189,0.7)',borderRadius:6,borderSkipped:false},{label:'Expenses',data:expense,backgroundColor:'rgba(250,109,109,0.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getLegendColor(),font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 function buildExpensesChart(){
@@ -670,7 +827,7 @@ function buildExpensesChart(){
   const by={};filtered.forEach(t=>{by[t.category]=(by[t.category]||0)+(+t.amount||0);});
   const labels=Object.keys(by),data=Object.values(by),colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
-  charts['expenses']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#12121a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#e8e8f0',font:{family:'DM Mono',size:11},padding:8}}},cutout:'60%'}});
+  charts['expenses']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:11},padding:8}}},cutout:'60%'}});
 }
 
 function buildIncVsExpChart(){
@@ -680,7 +837,7 @@ function buildIncVsExpChart(){
   const filtered=db.transactions.filter(t=>new Date(t.date)>=cutoff);
   const inc=filtered.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
   const exp=filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
-  charts['incvexp']=new Chart(ctx,{type:'bar',data:{labels:['Income','Expenses'],datasets:[{data:[inc,exp],backgroundColor:['rgba(109,250,189,0.7)','rgba(250,109,109,0.7)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  charts['incvexp']=new Chart(ctx,{type:'bar',data:{labels:['Income','Expenses'],datasets:[{data:[inc,exp],backgroundColor:['rgba(109,250,189,0.7)','rgba(250,109,109,0.7)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 // ─── CALCULATIONS ─────────────────────────────────────────────────────────────
@@ -740,16 +897,30 @@ function refreshAccounts(){
   const tbody=document.getElementById('accounts-table');if(!tbody)return;
   const empty=document.getElementById('accounts-empty');
   const total=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+  const interestAccounts=db.accounts.filter(a=>a.interestRate).length;
+  const monthlyInterestTotal=db.accounts.filter(a=>a.interestRate).reduce((s,a)=>s+(a.balance*(a.interestRate/100/12)),0);
   document.getElementById('accounts-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total Cash</div><div class="stat-value">${fmt(total)}</div></div>
-    <div class="stat-card"><div class="stat-label">Accounts</div><div class="stat-value">${db.accounts.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Accounts</div><div class="stat-value">${db.accounts.length}</div><div class="stat-change">${interestAccounts} earning interest</div></div>
+    ${interestAccounts?`<div class="stat-card"><div class="stat-label">Est. Monthly Interest</div><div class="stat-value positive">${fmt(monthlyInterestTotal)}</div><div class="stat-change up">▲ ${fmt(monthlyInterestTotal*12)} / year</div></div>`:''}
   `;
   if(!db.accounts.length){tbody.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
-  tbody.innerHTML=db.accounts.map(a=>`
-    <tr><td><strong>${a.name}</strong></td><td>${a.bank||'—'}</td><td><span class="badge cash">${a.type||'checking'}</span></td>
-    <td><strong>${fmt(a.balance)}</strong></td><td style="color:var(--muted)">${a.updated||'—'}</td>
-    <td><button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="deleteItem('accounts','${a.id}')">✕</button></td></tr>`).join('');
+  tbody.innerHTML=db.accounts.map(a=>{
+    const interestBadge=a.interestRate?`<span style="font-size:10px;background:rgba(250,204,109,0.15);color:var(--accent4);border-radius:4px;padding:2px 6px;margin-left:6px;">${a.interestRate}% ${a.autoInterest?'auto':'manual'}</span>`:'';
+    const monthlyEst=a.interestRate?`<div style="font-size:11px;color:var(--accent4);margin-top:2px;">+${fmt(a.balance*(a.interestRate/100/12))}/mo est.</div>`:'';
+    return`<tr>
+      <td><strong>${a.name}</strong>${interestBadge}${monthlyEst}</td>
+      <td>${a.bank||'—'}</td>
+      <td><span class="badge cash">${a.type||'checking'}</span></td>
+      <td><strong>${fmt(a.balance)}</strong></td>
+      <td style="color:var(--muted);font-size:12px">${a.updated||'—'}</td>
+      <td style="display:flex;gap:6px;padding:11px 20px;">
+        <button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="openModal('edit-account','${a.id}')">✎</button>
+        <button class="btn danger" style="padding:4px 10px;font-size:11px;background:transparent;color:var(--danger);border:1px solid var(--border);" onclick="deleteItem('accounts','${a.id}')">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
 }
 
 function refreshStocks(){
@@ -757,36 +928,64 @@ function refreshStocks(){
   const empty=document.getElementById('stocks-empty');
   const fxRate=db.settings.currency!=='USD'?getFxRate():1;
   const tf=activeTF.stocks;const cutoff=tfCutoff(tf);
+
+  // Migrate old stocks without lots array
+  db.stocks.forEach(h=>{
+    if(!h.lots){h.lots=[{id:uid(),shares:h.shares,price:h.avgCost,date:h.purchaseDate||new Date().toISOString().split('T')[0]}];}
+  });
+
   const totalValUSD=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0);
   const totalCostUSD=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.avgCost||0)),0);
   const totalGain=(totalValUSD-totalCostUSD)*fxRate;
   const pct=totalCostUSD?((totalValUSD-totalCostUSD)/totalCostUSD*100):0;
-  // TF-filtered
-  const tfHoldings=db.stocks.filter(h=>new Date(h.purchaseDate||'2000-01-01')>=cutoff);
-  const tfVal=tfHoldings.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0)*fxRate;
-  const tfCost=tfHoldings.reduce((s,h)=>s+((+h.shares||0)*(+h.avgCost||0)),0)*fxRate;
+
+  // TF-filtered: only lots purchased within window
+  let tfVal=0,tfCost=0,tfHoldingCount=0;
+  db.stocks.forEach(h=>{
+    const tfLots=(h.lots||[]).filter(l=>new Date(l.date)>=cutoff);
+    if(!tfLots.length)return;
+    tfHoldingCount++;
+    const tfShares=tfLots.reduce((s,l)=>s+l.shares,0);
+    const tfAvg=calcAvgCost(tfLots);
+    tfVal+=tfShares*(+h.currentPrice||0)*fxRate;
+    tfCost+=tfShares*tfAvg*fxRate;
+  });
   const tfGain=tfVal-tfCost;const tfPct=tfCost?(tfGain/tfCost*100):0;
   const code=getCurrencyCode();
+
   document.getElementById('stocks-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total Value</div><div class="stat-value">${fmt(totalValUSD*fxRate)}</div>${code!=='USD'?`<div class="stat-change">${fmtUSD(totalValUSD)}</div>`:''}</div>
     <div class="stat-card"><div class="stat-label">All-Time Gain/Loss</div><div class="stat-value ${totalGain>=0?'positive':'negative'}">${fmt(totalGain)}</div><div class="stat-change ${totalGain>=0?'up':'down'}">${fmtPct(pct)}</div></div>
-    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>=0?'positive':'negative'}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>=0?'up':'down'}">${fmtPct(tfPct)} · ${tfHoldings.length} holding${tfHoldings.length!==1?'s':''}</div></div>
+    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>=0?'positive':'negative'}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>=0?'up':'down'}">${fmtPct(tfPct)} · ${tfHoldingCount} stock${tfHoldingCount!==1?'s':''}</div></div>
     <div class="stat-card"><div class="stat-label">Total Holdings</div><div class="stat-value">${db.stocks.length}</div></div>
   `;
   buildStocksTimeline();buildStocksPie();buildStocksGainLoss();
   if(!db.stocks.length){tbody.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
+
   tbody.innerHTML=db.stocks.map(h=>{
     const valUSD=(+h.shares||0)*(+h.currentPrice||0);
     const costUSD=(+h.shares||0)*(+h.avgCost||0);
     const g=(valUSD-costUSD)*fxRate;const p=costUSD?((valUSD-costUSD)/costUSD*100):0;
-    const inWindow=new Date(h.purchaseDate||'2000-01-01')>=cutoff;
     const autoTag=h.autoFetch?`<span style="font-size:10px;color:var(--accent3);margin-left:4px" title="Auto-fetched">●</span>`:`<span style="font-size:10px;color:var(--muted);margin-left:4px" title="Manual">○</span>`;
-    return`<tr class="${!inWindow&&tf!=='ALL'?'tf-dimmed':''}">
-      <td><strong>${h.ticker}</strong>${autoTag}</td>
+    const lots=h.lots||[];
+    const lotsTag=lots.length>1?`<span style="font-size:10px;background:rgba(124,109,250,0.15);color:var(--accent);border-radius:4px;padding:2px 6px;margin-left:6px;">${lots.length} lots</span>`:'';
+    // Lots breakdown rows
+    const lotsRows=lots.length>1?lots.map(l=>`
+      <tr style="background:rgba(124,109,250,0.03);">
+        <td colspan="2" style="padding:6px 20px 6px 36px;font-size:11px;color:var(--muted);">↳ ${l.shares} shares @ ${fmtUSD(l.price)}</td>
+        <td style="font-size:11px;color:var(--muted);padding:6px 20px;">${l.date||'—'}</td>
+        <td colspan="5" style="padding:6px 20px;font-size:11px;color:var(--muted);">Cost: ${fmtUSD(l.shares*l.price)}</td>
+        <td style="padding:6px 20px;">
+          <button style="background:transparent;border:none;color:var(--danger);font-size:11px;cursor:pointer;padding:2px 4px;" onclick="deleteLot('${h.id}','${l.id}')">✕</button>
+        </td>
+      </tr>`).join(''):'';
+    return`<tr>
+      <td><strong>${h.ticker}</strong>${autoTag}${lotsTag}</td>
       <td style="color:var(--muted)">${h.name||''}</td>
       <td style="color:var(--muted);font-size:12px">${h.purchaseDate||'—'}</td>
-      <td>${h.shares}</td><td>${fmtUSD(h.avgCost)}</td>
+      <td>${(+h.shares).toFixed(4)}</td>
+      <td>${fmtUSD(h.avgCost)}</td>
       <td><div class="price-cell">
         <span class="price-display" id="pd-s-${h.id}" onclick="startEdit('stocks','${h.id}')">${fmtUSD(h.currentPrice)}</span>
         <div class="price-input-wrap" id="pi-s-${h.id}">
@@ -797,8 +996,11 @@ function refreshStocks(){
       </div></td>
       <td><strong>${fmt(valUSD*fxRate)}</strong></td>
       <td class="${g>=0?'positive':'negative'}">${fmt(g)}<br><small>${fmtPct(p)}</small></td>
-      <td><button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="deleteItem('stocks','${h.id}')">✕</button></td>
-    </tr>`;
+      <td style="display:flex;gap:6px;padding:11px 20px;">
+        <button class="btn secondary" style="padding:4px 10px;font-size:11px;white-space:nowrap;" onclick="openModal('add-lot','${h.id}')">+ Buy More</button>
+        <button class="btn danger" style="padding:4px 10px;font-size:11px;background:transparent;color:var(--danger);border:1px solid var(--border);" onclick="deleteItem('stocks','${h.id}')">✕</button>
+      </td>
+    </tr>${lotsRows}`;
   }).join('');
 }
 
@@ -914,39 +1116,103 @@ function saveInlineCryptoValue(id){
 // ─── MODALS ───────────────────────────────────────────────────────────────────
 let selectedCrypto=null;
 
-function openModal(type){
+function openModal(type, extraId=null){
   const overlay=document.getElementById('modal-overlay');
   const content=document.getElementById('modal-content');
   const code=getCurrencyCode();
   const today=new Date().toISOString().split('T')[0];
   let html='';
 
-  if(type==='account'){
-    html=`<div class="modal-title">Add Bank Account</div>
-      <div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="f-name" placeholder="e.g. Cuenta Ahorros Bancolombia"></div>
+  if(type==='account'||type==='edit-account'){
+    const a = type==='edit-account' ? db.accounts.find(a=>a.id===extraId) : null;
+    const isEdit = !!a;
+    html=`<div class="modal-title">${isEdit?'Edit Account':'Add Bank Account'}</div>
+      <div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="f-name" placeholder="e.g. Cuenta Ahorros Bancolombia" value="${isEdit?a.name:''}"></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Bank</label><input class="form-input" id="f-bank" placeholder="e.g. Bancolombia"></div>
-        <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="f-type"><option>checking</option><option>savings</option><option>investment</option><option>other</option></select></div>
+        <div class="form-group"><label class="form-label">Bank</label><input class="form-input" id="f-bank" placeholder="e.g. Bancolombia" value="${isEdit?a.bank||'':''}"></div>
+        <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="f-type">
+          <option ${(!isEdit||a.type==='checking')?'selected':''}>checking</option>
+          <option ${(isEdit&&a.type==='savings')?'selected':''}>savings</option>
+          <option ${(isEdit&&a.type==='investment')?'selected':''}>investment</option>
+          <option ${(isEdit&&a.type==='other')?'selected':''}>other</option>
+        </select></div>
       </div>
-      <div class="form-group"><label class="form-label">Current Balance (${code})</label><input class="form-input" id="f-balance" type="number" step="any" placeholder="0"></div>
-      <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveAccount()">Add Account</button></div>`;
+      <div class="form-group"><label class="form-label">Current Balance (${code})</label><input class="form-input" id="f-balance" type="number" step="any" placeholder="0" value="${isEdit?a.balance:''}"></div>
+      <div style="border-top:1px solid var(--border);margin:16px 0 14px;padding-top:16px;">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:14px;">Interest Settings</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <input type="checkbox" id="f-has-interest" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;" ${isEdit&&a.interestRate?'checked':''} onchange="toggleInterestFields()">
+          <label for="f-has-interest" style="font-size:13px;cursor:pointer;">This account earns interest</label>
+        </div>
+        <div id="interest-fields" style="display:${isEdit&&a.interestRate?'block':'none'}">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Annual Interest Rate (%)</label>
+              <input class="form-input" id="f-interest-rate" type="number" step="0.01" placeholder="e.g. 11" value="${isEdit&&a.interestRate?a.interestRate:''}">
+              <div class="hint">Current rate — changing it won't affect past earnings</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Compounding</label>
+              <select class="form-select" id="f-compound">
+                <option value="monthly" ${(!isEdit||!a.compounding||a.compounding==='monthly')?'selected':''}>Monthly</option>
+                <option value="daily" ${isEdit&&a.compounding==='daily'?'selected':''}>Daily</option>
+                <option value="annual" ${isEdit&&a.compounding==='annual'?'selected':''}>Annual</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <input type="checkbox" id="f-auto-interest" style="width:16px;height:16px;accent-color:var(--accent3);cursor:pointer;" ${isEdit&&a.autoInterest?'checked':''}>
+            <label for="f-auto-interest" style="font-size:13px;cursor:pointer;">Auto-calculate interest monthly</label>
+          </div>
+          <div class="info-box" style="margin-top:0">
+            💡 If auto-calculate is on, the app will apply interest to this account's balance on the 1st of each month and log it as a transaction. If off, you log interest manually.<br><br>
+            <strong>Changing the rate here only affects future months</strong> — past logged interest stays unchanged.
+          </div>
+          ${isEdit&&a.rateHistory&&a.rateHistory.length>1?`
+          <div style="margin-top:12px;">
+            <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Rate History</div>
+            ${a.rateHistory.map(r=>`<div style="font-size:12px;color:var(--muted);padding:3px 0;">${r.date} → <strong style="color:var(--text)">${r.rate}%</strong></div>`).join('')}
+          </div>`:''}
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" onclick="${isEdit?`updateAccount('${a.id}')`:'saveAccount()'}">${isEdit?'Save Changes':'Add Account'}</button>
+      </div>`;
 
   }else if(type==='stock'){
+    // New stock — just ask for ticker/name and first lot
     html=`<div class="modal-title">Add Stock / ETF</div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Ticker</label><input class="form-input" id="f-ticker" placeholder="AAPL" style="text-transform:uppercase"></div>
+        <div class="form-group"><label class="form-label">Ticker</label><input class="form-input" id="f-ticker" placeholder="AAPL" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
         <div class="form-group"><label class="form-label">Name (optional)</label><input class="form-input" id="f-name" placeholder="Apple Inc."></div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Shares</label><input class="form-input" id="f-shares" type="number" step="any" placeholder="0"></div>
-        <div class="form-group"><label class="form-label">Avg Cost/Share (USD)</label><input class="form-input" id="f-avgcost" type="number" step="any" placeholder="0.00"></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Current Price (USD)</label><input class="form-input" id="f-price" type="number" step="any" placeholder="0.00"></div>
+      <div style="border-top:1px solid var(--border);margin:16px 0 14px;padding-top:16px;">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:14px;">First Purchase</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Shares</label><input class="form-input" id="f-shares" type="number" step="any" placeholder="e.g. 10"></div>
+          <div class="form-group"><label class="form-label">Price per Share (USD)</label><input class="form-input" id="f-price" type="number" step="any" placeholder="e.g. 150.00"></div>
+        </div>
         <div class="form-group"><label class="form-label">Purchase Date</label><input class="form-input" id="f-date" type="date" value="${today}"></div>
       </div>
-      <div class="hint" style="margin-bottom:12px">💡 Prices in USD — auto-converted to ${code} using your settings rate.</div>
-      <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveStock()">Add Holding</button></div>`;
+      <div class="hint" style="margin-bottom:12px">💡 You can add more purchases later with the "Buy More" button.</div>
+      <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveStock()">Add Stock</button></div>`;
+
+  }else if(type==='add-lot'){
+    // Add a new purchase lot to an existing stock
+    const h=db.stocks.find(s=>s.id===extraId);if(!h)return;
+    html=`<div class="modal-title">Buy More — ${h.ticker}</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;">
+        <div style="color:var(--muted);font-size:11px;margin-bottom:4px;">CURRENT POSITION</div>
+        <div>${h.lots.reduce((s,l)=>s+l.shares,0).toFixed(4)} shares · avg cost ${fmtUSD(h.avgCost)} · ${h.lots.length} lot${h.lots.length!==1?'s':''}</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Shares</label><input class="form-input" id="f-shares" type="number" step="any" placeholder="e.g. 10"></div>
+        <div class="form-group"><label class="form-label">Price per Share (USD)</label><input class="form-input" id="f-price" type="number" step="any" placeholder="e.g. 200.00"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Purchase Date</label><input class="form-input" id="f-date" type="date" value="${today}"></div>
+      <div class="hint" style="margin-bottom:12px">The average cost will be recalculated automatically across all lots.</div>
+      <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveLot('${extraId}')">Add Purchase</button></div>`;
 
   }else if(type==='crypto'){
     selectedCrypto=null;
@@ -1004,26 +1270,145 @@ function selectCrypto(symbol){
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
 function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
 
+function toggleInterestFields(){
+  const checked=document.getElementById('f-has-interest').checked;
+  document.getElementById('interest-fields').style.display=checked?'block':'none';
+}
+
+function getInterestFields(){
+  const hasInterest=document.getElementById('f-has-interest')?.checked||false;
+  if(!hasInterest)return{interestRate:null,compounding:null,autoInterest:false};
+  return{
+    interestRate:parseFloat(document.getElementById('f-interest-rate')?.value)||null,
+    compounding:document.getElementById('f-compound')?.value||'monthly',
+    autoInterest:document.getElementById('f-auto-interest')?.checked||false
+  };
+}
+
 function saveAccount(){
   const name=document.getElementById('f-name').value.trim();
   const bank=document.getElementById('f-bank').value.trim();
   const type=document.getElementById('f-type').value;
   const balance=document.getElementById('f-balance').value;
   if(!name||balance==='')return alert('Please fill in name and balance.');
-  db.accounts.push({id:uid(),name,bank,type,balance:+balance,updated:new Date().toLocaleDateString()});
+  const {interestRate,compounding,autoInterest}=getInterestFields();
+  const today=new Date().toISOString().split('T')[0];
+  const account={
+    id:uid(),name,bank,type,balance:+balance,
+    updated:new Date().toLocaleDateString(),
+    interestRate,compounding,autoInterest,
+    rateHistory:interestRate?[{date:today,rate:interestRate}]:[],
+    lastInterestDate:null
+  };
+  db.accounts.push(account);
   save();closeModal();
+}
+
+function updateAccount(id){
+  const a=db.accounts.find(a=>a.id===id);if(!a)return;
+  a.name=document.getElementById('f-name').value.trim();
+  a.bank=document.getElementById('f-bank').value.trim();
+  a.type=document.getElementById('f-type').value;
+  a.balance=parseFloat(document.getElementById('f-balance').value)||a.balance;
+  a.updated=new Date().toLocaleDateString();
+  const {interestRate,compounding,autoInterest}=getInterestFields();
+  // If rate changed, log it in history
+  if(interestRate && interestRate !== a.interestRate){
+    if(!a.rateHistory)a.rateHistory=[];
+    a.rateHistory.push({date:new Date().toISOString().split('T')[0],rate:interestRate});
+  }
+  a.interestRate=interestRate;
+  a.compounding=compounding;
+  a.autoInterest=autoInterest;
+  if(!interestRate){a.rateHistory=[];a.autoInterest=false;}
+  save();closeModal();
+}
+
+// Auto-apply monthly interest for accounts that have it enabled
+function applyMonthlyInterest(){
+  const today=new Date();
+  const thisMonth=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+  let applied=0;
+  db.accounts.forEach(a=>{
+    if(!a.autoInterest||!a.interestRate)return;
+    if(a.lastInterestDate===thisMonth)return; // already applied this month
+    const monthlyRate=a.interestRate/100/12;
+    const interest=Math.round((a.balance*monthlyRate)*100)/100;
+    if(interest<=0)return;
+    a.balance=Math.round((a.balance+interest)*100)/100;
+    a.lastInterestDate=thisMonth;
+    a.updated=today.toLocaleDateString();
+    // Log as income transaction
+    db.transactions.push({
+      id:uid(),
+      type:'income',
+      date:today.toISOString().split('T')[0],
+      description:`Interest — ${a.name}`,
+      category:'Interest',
+      amount:interest,
+      autoGenerated:true
+    });
+    applied++;
+  });
+  if(applied>0)save();
+}
+
+function calcAvgCost(lots){
+  const totalShares=lots.reduce((s,l)=>s+l.shares,0);
+  if(!totalShares)return 0;
+  return lots.reduce((s,l)=>s+(l.shares*l.price),0)/totalShares;
 }
 
 function saveStock(){
   const ticker=document.getElementById('f-ticker').value.trim().toUpperCase();
   const name=document.getElementById('f-name').value.trim();
-  const shares=document.getElementById('f-shares').value;
-  const avgCost=document.getElementById('f-avgcost').value;
-  const currentPrice=document.getElementById('f-price').value;
-  const purchaseDate=document.getElementById('f-date').value;
-  if(!ticker||!shares||!avgCost||!currentPrice)return alert('Please fill in all required fields.');
-  db.stocks.push({id:uid(),ticker,name,shares:+shares,avgCost:+avgCost,currentPrice:+currentPrice,purchaseDate});
+  const shares=parseFloat(document.getElementById('f-shares').value);
+  const price=parseFloat(document.getElementById('f-price').value);
+  const date=document.getElementById('f-date').value;
+  if(!ticker||!shares||!price)return alert('Please fill in ticker, shares and price.');
+  if(db.stocks.find(s=>s.ticker===ticker)){
+    return alert(`${ticker} already exists. Use "Buy More" on the existing row to add another purchase.`);
+  }
+  const lot={id:uid(),shares,price,date};
+  db.stocks.push({
+    id:uid(),ticker,name,
+    lots:[lot],
+    shares,avgCost:price,
+    currentPrice:price, // will be updated on refresh
+    purchaseDate:date
+  });
   save();closeModal();
+}
+
+function saveLot(stockId){
+  const h=db.stocks.find(s=>s.id===stockId);if(!h)return;
+  const shares=parseFloat(document.getElementById('f-shares').value);
+  const price=parseFloat(document.getElementById('f-price').value);
+  const date=document.getElementById('f-date').value;
+  if(!shares||!price)return alert('Please fill in shares and price.');
+  if(!h.lots)h.lots=[{id:uid(),shares:h.shares,price:h.avgCost,date:h.purchaseDate}];
+  h.lots.push({id:uid(),shares,price,date});
+  // Recalculate totals
+  h.shares=h.lots.reduce((s,l)=>s+l.shares,0);
+  h.avgCost=calcAvgCost(h.lots);
+  // Keep purchaseDate as earliest lot
+  h.purchaseDate=h.lots.slice().sort((a,b)=>new Date(a.date)-new Date(b.date))[0].date;
+  save();closeModal();
+}
+
+function deleteLot(stockId, lotId){
+  const h=db.stocks.find(s=>s.id===stockId);if(!h||!h.lots)return;
+  if(h.lots.length<=1){
+    showConfirm({icon:'📈',title:'Remove stock?',msg:`This is the only lot for ${h.ticker}. Removing it will delete the entire position.`,confirmLabel:'Remove',onConfirm:()=>{db.stocks=db.stocks.filter(s=>s.id!==stockId);save();}});
+    return;
+  }
+  showConfirm({icon:'📈',title:'Remove lot?',msg:`Remove this purchase lot from ${h.ticker}? The average cost will be recalculated.`,confirmLabel:'Remove',onConfirm:()=>{
+    h.lots=h.lots.filter(l=>l.id!==lotId);
+    h.shares=h.lots.reduce((s,l)=>s+l.shares,0);
+    h.avgCost=calcAvgCost(h.lots);
+    h.purchaseDate=h.lots.slice().sort((a,b)=>new Date(a.date)-new Date(b.date))[0].date;
+    save();
+  }});
 }
 
 function saveCrypto(){
@@ -1048,10 +1433,43 @@ function saveTransaction(){
   save();closeModal();
 }
 
-function deleteItem(collection,id){
-  if(!confirm('Remove this item?'))return;
-  db[collection]=db[collection].filter(i=>i.id!==id);
-  save();
+// ─── CONFIRM DIALOG ───────────────────────────────────────────────────────────
+let _confirmCallback = null;
+
+function showConfirm({icon='🗑', title='Remove item?', msg='This action cannot be undone.', confirmLabel='Remove', onConfirm}){
+  document.getElementById('confirm-icon').textContent = icon;
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-ok-btn').textContent = confirmLabel;
+  _confirmCallback = onConfirm;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+
+function closeConfirm(){
+  document.getElementById('confirm-overlay').classList.remove('open');
+  _confirmCallback = null;
+}
+
+function confirmOk(){
+  if(_confirmCallback) _confirmCallback();
+  closeConfirm();
+}
+
+function deleteItem(collection, id){
+  const labels = {accounts:'account', stocks:'holding', crypto:'asset', transactions:'transaction'};
+  const icons = {accounts:'🏦', stocks:'📈', crypto:'₿', transactions:'💸'};
+  const item = db[collection].find(i=>i.id===id);
+  const name = item ? (item.name||item.ticker||item.symbol||item.description||'this item') : 'this item';
+  showConfirm({
+    icon: icons[collection]||'🗑',
+    title: `Remove ${labels[collection]||'item'}?`,
+    msg: `"${name}" will be permanently deleted. This cannot be undone.`,
+    confirmLabel: 'Remove',
+    onConfirm: () => {
+      db[collection] = db[collection].filter(i=>i.id!==id);
+      save();
+    }
+  });
 }
 
 // ─── PRICE FETCH ──────────────────────────────────────────────────────────────
@@ -1156,15 +1574,20 @@ function initGoogleAuth() {
 
 function handleSyncClick() {
   if (gToken) {
-    // Already connected — disconnect
-    if (confirm('Disconnect Google Drive? Your local data stays intact.')) {
-      gToken = null;
-      gDriveFileId = null;
-      localStorage.removeItem('vault_drive_file_id');
-      localStorage.removeItem('vault_gtoken_exp');
-      updateSyncUI(false);
-      setSyncStatus('Disconnected', '');
-    }
+    showConfirm({
+      icon: '☁',
+      title: 'Disconnect Google Drive?',
+      msg: 'Your local data stays intact. You can reconnect anytime.',
+      confirmLabel: 'Disconnect',
+      onConfirm: () => {
+        gToken = null;
+        gDriveFileId = null;
+        localStorage.removeItem('vault_drive_file_id');
+        localStorage.removeItem('vault_gtoken_exp');
+        updateSyncUI(false);
+        setSyncStatus('Disconnected', '');
+      }
+    });
     return;
   }
   if (!tokenClient) { setSyncStatus('Google not loaded yet, try again', 'err'); return; }
@@ -1182,10 +1605,11 @@ function updateSyncUI(connected) {
   const sub = document.getElementById('drive-status-sub');
   const actRow = document.getElementById('drive-actions-row');
   const pullRow = document.getElementById('drive-pull-row');
+  const mobileDot = document.getElementById('mobile-sync-dot');
 
   if (connected) {
-    if (btn) { btn.classList.add('connected'); }
-    if (btnS) { btnS.classList.add('connected'); }
+    if (btn) btn.classList.add('connected');
+    if (btnS) btnS.classList.add('connected');
     if (icon) icon.textContent = '✓';
     if (iconS) iconS.textContent = '✓';
     if (label) label.textContent = 'Drive Connected';
@@ -1193,9 +1617,10 @@ function updateSyncUI(connected) {
     if (sub) sub.textContent = 'Syncing to Google Drive · vault-finance.json';
     if (actRow) actRow.style.display = 'flex';
     if (pullRow) pullRow.style.display = 'flex';
+    if (mobileDot) mobileDot.classList.add('connected');
   } else {
-    if (btn) { btn.classList.remove('connected'); }
-    if (btnS) { btnS.classList.remove('connected'); }
+    if (btn) btn.classList.remove('connected');
+    if (btnS) btnS.classList.remove('connected');
     if (icon) icon.textContent = '☁';
     if (iconS) iconS.textContent = '☁';
     if (label) label.textContent = 'Connect Google Drive';
@@ -1203,6 +1628,7 @@ function updateSyncUI(connected) {
     if (sub) sub.textContent = 'Not connected';
     if (actRow) actRow.style.display = 'none';
     if (pullRow) pullRow.style.display = 'none';
+    if (mobileDot) mobileDot.classList.remove('connected');
   }
 }
 
@@ -1324,11 +1750,47 @@ function save() {
   }
 }
 
+// ─── THEME ────────────────────────────────────────────────────────────────────
+function applyTheme(mode) {
+  const mobileBtn = document.getElementById('mobile-theme-btn');
+  if (mode === 'light') {
+    document.body.classList.add('light');
+    ['theme-icon','theme-icon-settings'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='🌙'; });
+    ['theme-label','theme-label-settings'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='Dark Mode'; });
+    if (mobileBtn) mobileBtn.textContent = '🌙';
+  } else {
+    document.body.classList.remove('light');
+    ['theme-icon','theme-icon-settings'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='☀'; });
+    ['theme-label','theme-label-settings'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent='Light Mode'; });
+    if (mobileBtn) mobileBtn.textContent = '☀';
+  }
+  // Rebuild charts so they pick up new grid/tick colors
+  refreshAll();
+}
+
+function toggleTheme() {
+  const isLight = document.body.classList.contains('light');
+  const newMode = isLight ? 'dark' : 'light';
+  db.settings.theme = newMode;
+  localStorage.setItem(DB_KEY, JSON.stringify(db));
+  applyTheme(newMode);
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 load();
+// Apply saved theme immediately before first render
+applyTheme(db.settings.theme || 'dark');
+// Apply monthly interest for auto-interest accounts (safe — skips if already done this month)
+applyMonthlyInterest();
 refreshAll();
 updateSettingsUI();
 initGoogleAuth();
+// Auto-fetch FX rate on startup if currency isn't USD
+if (db.settings.currency !== 'USD') {
+  fetchFxRate().then(() => {
+    refreshAll();
+  });
+}
 </script>
 </body>
 </html>
