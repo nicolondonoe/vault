@@ -1592,37 +1592,81 @@ const VAULT_FILENAME = 'vault-finance.json';
 let gToken = null;
 let gDriveFileId = localStorage.getItem('vault_drive_file_id') || null;
 let tokenClient = null;
+let _tokenRefreshTimer = null;
+
+// Schedule a silent token refresh 5 minutes before expiry
+function scheduleTokenRefresh(expiresInMs) {
+  clearTimeout(_tokenRefreshTimer);
+  const refreshIn = Math.max(0, expiresInMs - 5 * 60 * 1000);
+  _tokenRefreshTimer = setTimeout(() => silentRefresh(), refreshIn);
+}
+
+function silentRefresh() {
+  if (!tokenClient) return;
+  const hint = localStorage.getItem('vault_google_hint') || '';
+  tokenClient.requestAccessToken({ prompt: '', login_hint: hint });
+}
 
 function initGoogleAuth() {
   if (!window.google) { setTimeout(initGoogleAuth, 500); return; }
+
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: GDRIVE_CLIENT_ID,
     scope: GDRIVE_SCOPES,
     callback: async (resp) => {
       if (resp.error) {
-        // Silent re-auth failed — user revoked access or needs to re-consent
-        if (resp.error === 'interaction_required' || resp.error === 'access_denied') {
-          localStorage.removeItem('vault_connected');
-          localStorage.removeItem('vault_gtoken_exp');
+        // Silent re-auth failed — needs re-consent or user revoked access
+        if (['interaction_required', 'access_denied', 'user_cancelled'].includes(resp.error)) {
+          // Don't clear vault_connected — just show a non-intrusive prompt
+          // so next time they open the app manually they can reconnect
+          gToken = null;
           updateSyncUI(false);
-          setSyncStatus('', '');
+          setSyncStatus('Tap to reconnect', 'err');
         } else {
-          setSyncStatus('Auth failed: ' + resp.error, 'err');
+          setSyncStatus('Auth error: ' + resp.error, 'err');
         }
         return;
       }
+
+      const isFirstConnect = !gToken; // true on first load, false on background refresh
       gToken = resp.access_token;
-      localStorage.setItem('vault_gtoken_exp', Date.now() + (resp.expires_in * 1000));
+      const expiresInMs = (resp.expires_in || 3600) * 1000;
+      localStorage.setItem('vault_gtoken_exp', Date.now() + expiresInMs);
       localStorage.setItem('vault_connected', '1');
-      setSyncStatus('Connected ✓', 'ok');
+
+      // Persist the account hint so future silent re-auths skip account chooser
+      if (resp.scope) {
+        // Try to get email from the id token if present, otherwise keep existing hint
+        // The token client doesn't give us id_token, so we use userinfo endpoint
+        try {
+          const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { 'Authorization': 'Bearer ' + gToken }
+          });
+          if (info.ok) {
+            const u = await info.json();
+            if (u.email) localStorage.setItem('vault_google_hint', u.email);
+          }
+        } catch(e) { /* non-critical */ }
+      }
+
+      // Proactively refresh token before it expires — keeps session alive indefinitely
+      scheduleTokenRefresh(expiresInMs);
+
       updateSyncUI(true);
-      await pullFromDrive();
+      if (isFirstConnect) {
+        setSyncStatus('Connected ✓', 'ok');
+        await pullFromDrive();
+      } else {
+        // Background refresh — no UI noise
+        setSyncStatus('Connected ✓', 'ok');
+      }
     }
   });
-  // If user previously connected, always attempt a silent re-auth on startup
+
+  // On startup: if user was previously connected, silently re-auth using their hint
   if (localStorage.getItem('vault_connected') === '1') {
     setSyncStatus('Reconnecting...', '');
-    tokenClient.requestAccessToken({ prompt: '' });
+    silentRefresh();
   }
 }
 
@@ -1634,20 +1678,27 @@ function handleSyncClick() {
       msg: 'Your local data stays intact. You can reconnect anytime.',
       confirmLabel: 'Disconnect',
       onConfirm: () => {
+        clearTimeout(_tokenRefreshTimer);
         gToken = null;
         gDriveFileId = null;
         localStorage.removeItem('vault_drive_file_id');
         localStorage.removeItem('vault_gtoken_exp');
         localStorage.removeItem('vault_connected');
+        localStorage.removeItem('vault_google_hint');
         updateSyncUI(false);
         setSyncStatus('Disconnected', '');
       }
     });
     return;
   }
+  // Not connected — check if we just need a silent refresh or full consent
   if (!tokenClient) { setSyncStatus('Google not loaded yet, try again', 'err'); return; }
+  const hint = localStorage.getItem('vault_google_hint') || '';
   setSyncStatus('Connecting...', '');
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+  // If we have a hint, try silent first; if that fails the callback will get interaction_required
+  // and we'd need explicit consent — but having a hint usually avoids the popup entirely
+  const prompt = hint ? '' : 'consent';
+  tokenClient.requestAccessToken({ prompt, login_hint: hint });
 }
 
 function updateSyncUI(connected) {
