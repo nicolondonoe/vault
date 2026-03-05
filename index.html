@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault — Personal Finance</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;--border:#2a2a3d;
+    --accent:#7c6dfa;--accent2:#fa6d9e;--accent3:#6dfabd;--accent4:#facc6d;
+    --text:#e8e8f0;--muted:#6b6b8a;--danger:#fa6d6d;--green:#6dfabd;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Mono',monospace;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(124,109,250,0.03)1px,transparent 1px),linear-gradient(90deg,rgba(124,109,250,0.03)1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  .app{position:relative;z-index:1;display:flex;min-height:100vh;}
+  .sidebar{width:220px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;position:fixed;top:0;left:0;bottom:0;}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:-0.5px;padding:0 24px 28px;border-bottom:1px solid var(--border);color:var(--text);}
+  .logo span{color:var(--accent);}
+  nav{padding:20px 12px;flex:1;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);transition:all 0.15s;margin-bottom:2px;letter-spacing:0.3px;}
+  .nav-item:hover{background:var(--surface2);color:var(--text);}
+  .nav-item.active{background:rgba(124,109,250,0.15);color:var(--accent);}
+  .nav-icon{font-size:16px;width:20px;text-align:center;}
+  .sidebar-footer{padding:16px 24px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);}
+  .main{margin-left:220px;flex:1;padding:32px;}
+  .page{display:none;}
+  .page.active{display:block;animation:fadeIn 0.25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .page-header{margin-bottom:28px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;}
+  .page-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px;}
+  .page-sub{font-size:12px;color:var(--muted);}
+  /* Timeframe bar */
+  .tf-bar{display:flex;gap:4px;align-items:center;}
+  .tf-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:5px 10px;cursor:pointer;transition:all 0.15s;}
+  .tf-btn:hover{color:var(--text);}
+  .tf-btn.active{background:rgba(124,109,250,0.2);border-color:var(--accent);color:var(--accent);}
+  /* Stat cards */
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:28px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+  .stat-card:hover{border-color:var(--accent);}
+  .stat-card::after{content:'';position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle at top right,rgba(124,109,250,0.12),transparent 70%);}
+  .stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+  .stat-value{font-family:'Syne',sans-serif;font-size:24px;font-weight:700;}
+  .stat-change{font-size:11px;margin-top:6px;}
+  .stat-change.up{color:var(--green);}.stat-change.down{color:var(--danger);}
+  /* Charts */
+  .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .chart-card.wide{grid-column:1/-1;}
+  .chart-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text);}
+  .chart-wrap{position:relative;height:220px;}.chart-wrap.tall{height:300px;}
+  /* Data cards */
+  .data-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+  .data-card-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;}
+  .data-card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+  .header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  /* Buttons */
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.3px;}
+  .btn:hover{opacity:0.85;}
+  .btn.secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+  .btn.danger{background:var(--danger);}
+  .btn.refresh{background:var(--surface2);color:var(--accent3);border:1px solid rgba(109,250,189,0.3);}
+  .btn.refresh:hover{background:rgba(109,250,189,0.1);}
+  .btn.refresh.loading{opacity:0.6;pointer-events:none;}
+  /* Table */
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:10px 20px;border-bottom:1px solid var(--border);}
+  td{padding:11px 20px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.03);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:rgba(255,255,255,0.02);}
+  /* Badges */
+  .badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:500;}
+  .badge.stock{background:rgba(124,109,250,0.2);color:var(--accent);}
+  .badge.crypto{background:rgba(250,109,158,0.2);color:var(--accent2);}
+  .badge.cash{background:rgba(109,250,189,0.2);color:var(--accent3);}
+  .badge.income{background:rgba(109,250,189,0.2);color:var(--accent3);}
+  .badge.expense{background:rgba(250,109,109,0.2);color:var(--danger);}
+  .positive{color:var(--green);}.negative{color:var(--danger);}
+  /* Modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:460px;max-width:95vw;animation:modalIn 0.2s ease;max-height:90vh;overflow-y:auto;}
+  @keyframes modalIn{from{opacity:0;transform:scale(0.95);}to{opacity:1;transform:scale(1);}}
+  .modal-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:20px;}
+  .form-group{margin-bottom:14px;}
+  .form-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px;}
+  .form-input,.form-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;outline:none;transition:border-color 0.15s;}
+  .form-input:focus,.form-select:focus{border-color:var(--accent);}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+  /* Misc */
+  .empty-state{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px;}
+  .empty-icon{font-size:32px;margin-bottom:12px;}
+  .price-cell{display:flex;align-items:center;gap:6px;}
+  .price-display{cursor:pointer;border-bottom:1px dashed var(--border);padding-bottom:1px;transition:border-color 0.15s;}
+  .price-display:hover{border-color:var(--accent);color:var(--accent);}
+  .price-input-wrap{display:none;align-items:center;gap:4px;}
+  .price-input-wrap.editing{display:flex;}
+  .price-display.hidden{display:none;}
+  .inline-input{background:var(--surface2);border:1px solid var(--accent);border-radius:5px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:3px 7px;width:100px;outline:none;}
+  .inline-save{background:var(--accent);color:#fff;border:none;border-radius:4px;padding:3px 7px;font-size:11px;cursor:pointer;font-family:'DM Mono',monospace;}
+  .inline-cancel{background:transparent;color:var(--muted);border:none;font-size:13px;cursor:pointer;padding:2px;}
+  .fetch-status{font-size:11px;color:var(--muted);}
+  .fetch-status.ok{color:var(--green);}.fetch-status.err{color:var(--danger);}
+  .fx-bar{background:rgba(250,204,109,0.08);border:1px solid rgba(250,204,109,0.2);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--accent4);margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+  .fx-bar span{color:var(--muted);}
+  /* Settings */
+  .settings-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;}
+  .settings-section-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+  .settings-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+  .settings-row:last-child{border-bottom:none;padding-bottom:0;}
+  .settings-row-label{font-size:13px;}
+  .settings-row-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+  .currency-pill{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .currency-opt{padding:7px 14px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;color:var(--muted);transition:all 0.15s;border:none;background:transparent;}
+  .currency-opt.active{background:var(--accent);color:#fff;}
+  .fx-rate-display{font-size:12px;color:var(--muted);}
+  .fx-rate-display strong{color:var(--accent4);}
+  .info-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:12px;color:var(--muted);line-height:1.6;margin-top:12px;}
+  /* Crypto select */
+  .crypto-select-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;max-height:180px;overflow-y:auto;padding-right:4px;}
+  .crypto-opt{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;}
+  .crypto-opt:hover{border-color:var(--accent2);}
+  .crypto-opt.selected{border-color:var(--accent2);background:rgba(250,109,158,0.1);}
+  .co-symbol{font-size:11px;font-weight:600;color:var(--accent2);}
+  .co-name{font-size:11px;color:var(--muted);}
+  .crypto-search{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:8px 12px;outline:none;margin-bottom:10px;}
+  .crypto-search:focus{border-color:var(--accent2);}
+  .hint{font-size:11px;color:var(--muted);margin-top:5px;}
+  /* Holding row highlight for timeframe */
+  .tf-dimmed{opacity:0.35;}
+  .tf-tag{font-size:10px;color:var(--muted);display:block;}
+  /* Google Drive sync */
+  .sync-bar{padding:12px 24px;border-top:1px solid var(--border);font-size:12px;}
+  .sync-btn{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:8px;justify-content:center;}
+  .sync-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .sync-btn.connected{border-color:rgba(109,250,189,0.4);color:var(--accent3);}
+  .sync-btn.syncing{opacity:0.6;pointer-events:none;}
+  .sync-status{font-size:10px;color:var(--muted);text-align:center;margin-top:6px;min-height:14px;}
+  .sync-status.ok{color:var(--accent3);}
+  .sync-status.err{color:var(--danger);}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">vault<span>.</span></div>
+    <nav>
+      <div class="nav-item active" onclick="navigate('dashboard')"><span class="nav-icon">◈</span> Dashboard</div>
+      <div class="nav-item" onclick="navigate('accounts')"><span class="nav-icon">◉</span> Accounts</div>
+      <div class="nav-item" onclick="navigate('stocks')"><span class="nav-icon">◈</span> Stocks / ETFs</div>
+      <div class="nav-item" onclick="navigate('crypto')"><span class="nav-icon">◇</span> Crypto</div>
+      <div class="nav-item" onclick="navigate('cashflow')"><span class="nav-icon">◫</span> Cash Flow</div>
+      <div class="nav-item" onclick="navigate('settings')"><span class="nav-icon">⚙</span> Settings</div>
+    </nav>
+    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.</div>
+    <div class="sync-bar">
+      <button class="sync-btn" id="sync-btn" onclick="handleSyncClick()">
+        <span id="sync-btn-icon">☁</span>
+        <span id="sync-btn-label">Connect Google Drive</span>
+      </button>
+      <div class="sync-status" id="sync-status"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div><div class="page-title">Dashboard</div><div class="page-sub" id="dashboard-date"></div></div>
+        <div class="tf-bar" id="dash-tf"></div>
+      </div>
+      <div id="fx-bar-dash" class="fx-bar" style="display:none"></div>
+      <div class="stat-grid" id="dash-stats"></div>
+      <div class="chart-grid">
+        <div class="chart-card"><div class="chart-title">Portfolio Allocation</div><div class="chart-wrap"><canvas id="chart-allocation"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Asset Distribution</div><div class="chart-wrap"><canvas id="chart-assets"></canvas></div></div>
+        <div class="chart-card wide"><div class="chart-title">Net Worth Over Time</div><div class="chart-wrap tall"><canvas id="chart-networth"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- ACCOUNTS -->
+    <div id="page-accounts" class="page">
+      <div class="page-header"><div><div class="page-title">Bank Accounts</div><div class="page-sub">Track your cash across all accounts</div></div></div>
+      <div class="stat-grid" id="accounts-stats"></div>
+      <div class="data-card">
+        <div class="data-card-header">
+          <div class="data-card-title">All Accounts</div>
+          <button class="btn" onclick="openModal('account')">+ Add Account</button>
+        </div>
+        <table><thead><tr><th>Account</th><th>Bank</th><th>Type</th><th>Balance</th><th>Updated</th><th></th></tr></thead>
+        <tbody id="accounts-table"></tbody></table>
+        <div id="accounts-empty" class="empty-state" style="display:none"><div class="empty-icon">🏦</div>No accounts yet.</div>
+      </div>
+    </div>
+
+    <!-- STOCKS -->
+    <div id="page-stocks" class="page">
+      <div class="page-header">
+        <div><div class="page-title">Stocks & ETFs</div><div class="page-sub">Monitor your equity portfolio</div></div>
+        <div class="tf-bar" id="stocks-tf"></div>
+      </div>
+      <div id="fx-bar-stocks" class="fx-bar" style="display:none"></div>
+      <div class="stat-grid" id="stocks-stats"></div>
+      <!-- Charts -->
+      <div class="chart-grid">
+        <div class="chart-card wide"><div class="chart-title">Portfolio Value Over Time</div><div class="chart-wrap tall"><canvas id="chart-stocks-timeline"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Holdings Breakdown</div><div class="chart-wrap"><canvas id="chart-stocks-pie"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Gain / Loss by Holding</div><div class="chart-wrap"><canvas id="chart-stocks-gainloss"></canvas></div></div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-header">
+          <div class="data-card-title">Holdings</div>
+          <div class="header-actions">
+            <span class="fetch-status" id="stocks-fetch-status"></span>
+            <button class="btn refresh" id="stocks-refresh-btn" onclick="fetchStockPrices()">⟳ Refresh US Prices</button>
+            <button class="btn" onclick="openModal('stock')">+ Add Holding</button>
+          </div>
+        </div>
+        <table><thead><tr><th>Ticker</th><th>Name</th><th>Bought</th><th>Shares</th><th>Avg Cost</th><th>Price (USD)</th><th>Value</th><th>Gain/Loss</th><th></th></tr></thead>
+        <tbody id="stocks-table"></tbody></table>
+        <div id="stocks-empty" class="empty-state" style="display:none"><div class="empty-icon">📈</div>No holdings yet.</div>
+      </div>
+    </div>
+
+    <!-- CRYPTO -->
+    <div id="page-crypto" class="page">
+      <div class="page-header">
+        <div><div class="page-title">Crypto</div><div class="page-sub">Track your digital asset portfolio</div></div>
+        <div class="tf-bar" id="crypto-tf"></div>
+      </div>
+      <div id="fx-bar-crypto" class="fx-bar" style="display:none"></div>
+      <div class="stat-grid" id="crypto-stats"></div>
+      <!-- Charts -->
+      <div class="chart-grid">
+        <div class="chart-card wide"><div class="chart-title">Portfolio Value Over Time</div><div class="chart-wrap tall"><canvas id="chart-crypto-timeline"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Holdings Breakdown</div><div class="chart-wrap"><canvas id="chart-crypto-pie"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Gain / Loss by Asset</div><div class="chart-wrap"><canvas id="chart-crypto-gainloss"></canvas></div></div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-header">
+          <div class="data-card-title">Holdings</div>
+          <div class="header-actions">
+            <span class="fetch-status" id="crypto-fetch-status"></span>
+            <button class="btn refresh" id="crypto-refresh-btn" onclick="fetchCryptoPrices()">⟳ Refresh Prices</button>
+            <button class="btn" onclick="openModal('crypto')">+ Add Crypto</button>
+          </div>
+        </div>
+        <table><thead><tr><th>Asset</th><th>Symbol</th><th>Bought</th><th>USD Invested</th><th>Current Value (USD)</th><th>Value</th><th>Gain/Loss</th><th></th></tr></thead>
+        <tbody id="crypto-table"></tbody></table>
+        <div id="crypto-empty" class="empty-state" style="display:none"><div class="empty-icon">₿</div>No crypto holdings yet.</div>
+      </div>
+    </div>
+
+    <!-- CASHFLOW -->
+    <div id="page-cashflow" class="page">
+      <div class="page-header">
+        <div><div class="page-title">Cash Flow</div><div class="page-sub">Income, expenses, and your financial flow</div></div>
+        <div class="tf-bar" id="cf-tf"></div>
+      </div>
+      <div class="stat-grid" id="cashflow-stats"></div>
+      <div class="chart-grid">
+        <div class="chart-card wide"><div class="chart-title">Monthly Cash Flow</div><div class="chart-wrap tall"><canvas id="chart-cashflow"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Expense Breakdown</div><div class="chart-wrap"><canvas id="chart-expenses"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Income vs Expenses</div><div class="chart-wrap"><canvas id="chart-incvexp"></canvas></div></div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-header">
+          <div class="data-card-title">Transactions</div>
+          <button class="btn" onclick="openModal('transaction')">+ Add Transaction</button>
+        </div>
+        <table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th>Amount</th><th></th></tr></thead>
+        <tbody id="cashflow-table"></tbody></table>
+        <div id="cashflow-empty" class="empty-state" style="display:none"><div class="empty-icon">💸</div>No transactions yet.</div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="page">
+      <div class="page-header"><div><div class="page-title">Settings</div><div class="page-sub">Customize your tracker</div></div></div>
+      <div class="settings-section">
+        <div class="settings-section-title">Currency</div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">Display Currency</div><div class="settings-row-sub">All values shown in this currency</div></div>
+          <div class="currency-pill">
+            <button class="currency-opt" id="cur-COP" onclick="setCurrency('COP')">COP</button>
+            <button class="currency-opt" id="cur-USD" onclick="setCurrency('USD')">USD</button>
+            <button class="currency-opt" id="cur-EUR" onclick="setCurrency('EUR')">EUR</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">USD → <span id="fx-target-label">COP</span> Rate</div><div class="settings-row-sub">Used to convert stocks & crypto</div></div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="fx-rate-display">1 USD = <strong id="fx-rate-display">—</strong></div>
+            <button class="btn refresh" id="fx-fetch-btn" onclick="fetchFxRate()">⟳ Fetch</button>
+          </div>
+        </div>
+        <div class="settings-row" id="fx-manual-row">
+          <div><div class="settings-row-label">Set Rate Manually</div></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input class="inline-input" id="fx-manual-input" type="number" step="any" style="width:130px;" placeholder="e.g. 4200">
+            <button class="inline-save" onclick="setManualFx()">Set</button>
+          </div>
+        </div>
+        <div class="info-box">💡 Stocks and crypto prices are stored in USD and converted using the rate above. Bank accounts and transactions are assumed to be in your display currency already.</div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Google Drive Sync</div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row-label">Sync Status</div>
+            <div class="settings-row-sub" id="drive-status-sub">Not connected</div>
+          </div>
+          <button class="sync-btn" id="sync-btn-settings" onclick="handleSyncClick()" style="width:auto;padding:8px 16px;">
+            <span id="sync-icon-settings">☁</span>
+            <span id="sync-label-settings">Connect</span>
+          </button>
+        </div>
+        <div class="settings-row" id="drive-actions-row" style="display:none">
+          <div><div class="settings-row-label">Manual Sync</div><div class="settings-row-sub">Force push your local data to Drive now</div></div>
+          <button class="btn refresh" onclick="syncToDrive(true)">⟳ Push to Drive</button>
+        </div>
+        <div class="settings-row" id="drive-pull-row" style="display:none">
+          <div><div class="settings-row-label">Pull from Drive</div><div class="settings-row-sub">Load data from Drive (overwrites local)</div></div>
+          <button class="btn secondary" onclick="pullFromDrive()">↓ Pull</button>
+        </div>
+        <div class="info-box">☁ Your data is saved as <strong>vault-finance.json</strong> in your Google Drive. Open this file on any device to get your data — just connect Drive again and it loads automatically.</div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Data</div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">Export Backup</div><div class="settings-row-sub">Download all data as JSON</div></div>
+          <button class="btn secondary" onclick="exportData()">↓ Export</button>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">Import Backup</div><div class="settings-row-sub">Restore from a JSON file</div></div>
+          <label class="btn secondary" style="cursor:pointer;">↑ Import<input type="file" accept=".json" style="display:none;" onchange="importData(event)"></label>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">Clear All Data</div><div class="settings-row-sub">Permanently delete everything</div></div>
+          <button class="btn danger" onclick="clearAllData()">Clear</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+// ─── CRYPTO LIST ──────────────────────────────────────────────────────────────
+const CRYPTO_LIST = [
+  {symbol:'BTC',name:'Bitcoin',cgId:'bitcoin'},
+  {symbol:'ETH',name:'Ethereum',cgId:'ethereum'},
+  {symbol:'SOL',name:'Solana',cgId:'solana'},
+  {symbol:'BNB',name:'BNB',cgId:'binancecoin'},
+  {symbol:'XRP',name:'XRP',cgId:'ripple'},
+  {symbol:'ADA',name:'Cardano',cgId:'cardano'},
+  {symbol:'AVAX',name:'Avalanche',cgId:'avalanche-2'},
+  {symbol:'DOGE',name:'Dogecoin',cgId:'dogecoin'},
+  {symbol:'DOT',name:'Polkadot',cgId:'polkadot'},
+  {symbol:'MATIC',name:'Polygon',cgId:'matic-network'},
+  {symbol:'LINK',name:'Chainlink',cgId:'chainlink'},
+  {symbol:'UNI',name:'Uniswap',cgId:'uniswap'},
+  {symbol:'ATOM',name:'Cosmos',cgId:'cosmos'},
+  {symbol:'LTC',name:'Litecoin',cgId:'litecoin'},
+  {symbol:'BCH',name:'Bitcoin Cash',cgId:'bitcoin-cash'},
+  {symbol:'SHIB',name:'Shiba Inu',cgId:'shiba-inu'},
+  {symbol:'TRX',name:'TRON',cgId:'tron'},
+  {symbol:'NEAR',name:'NEAR Protocol',cgId:'near'},
+  {symbol:'APT',name:'Aptos',cgId:'aptos'},
+  {symbol:'OP',name:'Optimism',cgId:'optimism'},
+  {symbol:'ARB',name:'Arbitrum',cgId:'arbitrum'},
+  {symbol:'SUI',name:'Sui',cgId:'sui'},
+  {symbol:'TON',name:'Toncoin',cgId:'the-open-network'},
+  {symbol:'PEPE',name:'Pepe',cgId:'pepe'},
+  {symbol:'USDT',name:'Tether',cgId:'tether'},
+  {symbol:'USDC',name:'USD Coin',cgId:'usd-coin'},
+];
+
+// ─── DB ───────────────────────────────────────────────────────────────────────
+const DB_KEY = 'vault_data_v3';
+let db = {accounts:[],stocks:[],crypto:[],transactions:[],settings:{currency:'COP',fxRate:4200}};
+
+function save(){localStorage.setItem(DB_KEY,JSON.stringify(db));refreshAll();}
+function load(){
+  const raw=localStorage.getItem(DB_KEY);
+  if(raw){try{const p=JSON.parse(raw);db={...db,...p};if(!db.settings)db.settings={currency:'COP',fxRate:4200};}catch(e){}}
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+// ─── TIMEFRAMES ───────────────────────────────────────────────────────────────
+// tf: '1M','3M','6M','1Y','ALL'
+let activeTF = {dashboard:'1Y', stocks:'1Y', crypto:'1Y', cashflow:'6M'};
+
+const TF_OPTIONS = ['1M','3M','6M','1Y','ALL'];
+
+function tfCutoff(tf){
+  const now = new Date();
+  if(tf==='ALL') return new Date('2000-01-01');
+  const m = {M1:1,M3:3,M6:6,Y1:12}[tf.replace(/(\d+)([MY])/,'$2$1')] || 12;
+  // parse manually
+  const months = tf==='1M'?1:tf==='3M'?3:tf==='6M'?6:tf==='1Y'?12:0;
+  if(!months) return new Date('2000-01-01');
+  return new Date(now.getFullYear(), now.getMonth()-months, now.getDate());
+}
+
+function buildTfBar(containerId, section){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = TF_OPTIONS.map(tf=>`<button class="tf-btn ${activeTF[section]===tf?'active':''}" onclick="setTF('${section}','${tf}')">${tf}</button>`).join('');
+}
+
+function setTF(section, tf){
+  activeTF[section]=tf;
+  refreshAll();
+}
+
+// ─── CURRENCY ─────────────────────────────────────────────────────────────────
+const CURRENCY_SYMBOLS={COP:'$',USD:'$',EUR:'€'};
+function getCurrencySymbol(){return CURRENCY_SYMBOLS[db.settings.currency]||'$';}
+function getCurrencyCode(){return db.settings.currency;}
+function getFxRate(){return db.settings.fxRate||1;}
+
+function fmt(n, usd=false){
+  let val=+n||0;
+  if(usd && db.settings.currency!=='USD') val=val*getFxRate();
+  if(db.settings.currency==='COP') return getCurrencySymbol()+Math.round(val).toLocaleString('es-CO');
+  return getCurrencySymbol()+val.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function fmtUSD(n){return '$'+(+n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtPct(n){return(n>=0?'+':'')+Number(n).toFixed(2)+'%';}
+
+function setCurrency(c){db.settings.currency=c;save();updateSettingsUI();}
+function updateSettingsUI(){
+  document.querySelectorAll('.currency-opt').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById('cur-'+db.settings.currency);if(el)el.classList.add('active');
+  const lbl=document.getElementById('fx-target-label');if(lbl)lbl.textContent=db.settings.currency;
+  const disp=document.getElementById('fx-rate-display');
+  if(disp)disp.textContent=db.settings.currency==='USD'?'N/A':db.settings.fxRate.toLocaleString();
+  const mrow=document.getElementById('fx-manual-row');
+  if(mrow)mrow.style.display=db.settings.currency==='USD'?'none':'flex';
+}
+function setManualFx(){
+  const v=parseFloat(document.getElementById('fx-manual-input').value);
+  if(isNaN(v)||v<=0)return alert('Enter a valid rate');
+  db.settings.fxRate=v;save();updateSettingsUI();
+}
+async function fetchFxRate(){
+  if(db.settings.currency==='USD')return;
+  const btn=document.getElementById('fx-fetch-btn');
+  btn.textContent='⟳ Fetching...';btn.classList.add('loading');
+  try{
+    const res=await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
+    const data=await res.json();
+    const rate=data.rates[db.settings.currency];
+    if(rate){db.settings.fxRate=rate;save();updateSettingsUI();btn.textContent='✓ Updated';setTimeout(()=>{btn.textContent='⟳ Fetch';btn.classList.remove('loading');},2000);return;}
+    throw new Error();
+  }catch(e){
+    try{
+      const res2=await fetch(`https://api.frankfurter.app/latest?from=USD&to=${db.settings.currency}`);
+      const d2=await res2.json();const r2=d2.rates[db.settings.currency];
+      if(r2){db.settings.fxRate=r2;save();updateSettingsUI();btn.textContent='✓ Updated';setTimeout(()=>{btn.textContent='⟳ Fetch';btn.classList.remove('loading');},2000);return;}
+    }catch(e2){}
+    btn.textContent='Failed';btn.classList.remove('loading');setTimeout(()=>{btn.textContent='⟳ Fetch';},3000);
+  }
+}
+function fxBannerHTML(){
+  if(db.settings.currency==='USD')return'';
+  return`1 USD = <strong>${db.settings.fxRate.toLocaleString()} ${db.settings.currency}</strong> <span>· Stocks & crypto auto-converted ·</span> <a href="#" onclick="navigate('settings');return false;" style="color:var(--accent4)">Update rate</a>`;
+}
+function showFxBars(){
+  const isConv=db.settings.currency!=='USD';
+  ['dash','stocks','crypto'].forEach(id=>{
+    const el=document.getElementById('fx-bar-'+id);if(!el)return;
+    if(isConv){el.style.display='flex';el.innerHTML=fxBannerHTML();}else el.style.display='none';
+  });
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────────────────
+function navigate(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    const t=n.textContent.toLowerCase();
+    if(page==='dashboard'&&t.includes('dash'))n.classList.add('active');
+    else if(page!=='dashboard'&&t.includes(page.slice(0,4)))n.classList.add('active');
+  });
+  refreshAll();
+  if(page==='settings')updateSettingsUI();
+}
+
+// ─── CHARTS ───────────────────────────────────────────────────────────────────
+let charts={};
+const PAL=['#7c6dfa','#fa6d9e','#6dfabd','#facc6d','#6dbefa','#fa9c6d','#c46dfa','#6dfae5'];
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+// Shared chart defaults
+const gridColor='rgba(255,255,255,0.04)';
+const tickStyle={color:'#6b6b8a',font:{family:'DM Mono',size:11}};
+
+function buildAllocationChart(){
+  destroyChart('allocation');
+  const ctx=document.getElementById('chart-allocation');if(!ctx)return;
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const cash=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+  const stocks=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0)*fxRate;
+  const crypto=db.crypto.reduce((s,h)=>s+(+h.currentValueUSD||0),0)*fxRate;
+  const labels=[],data=[],colors=[];
+  if(cash){labels.push('Cash');data.push(cash);colors.push('#6dfabd');}
+  if(stocks){labels.push('Stocks/ETFs');data.push(stocks);colors.push('#7c6dfa');}
+  if(crypto){labels.push('Crypto');data.push(crypto);colors.push('#fa6d9e');}
+  if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
+  charts['allocation']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#12121a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12},padding:14}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'65%'}});
+}
+
+function buildAssetsChart(){
+  destroyChart('assets');
+  const ctx=document.getElementById('chart-assets');if(!ctx)return;
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const labels=[...db.stocks.map(h=>h.ticker),...db.crypto.map(h=>h.symbol)];
+  const data=[...db.stocks.map(h=>(+h.shares||0)*(+h.currentPrice||0)*fxRate),...db.crypto.map(h=>(+h.currentValueUSD||0)*fxRate)];
+  const colors=labels.map((_,i)=>PAL[i%PAL.length]);
+  if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
+  charts['assets']=new Chart(ctx,{type:'pie',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#12121a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}}}});
+}
+
+// Generate synthetic monthly data points for a set of holdings
+// holdings: [{purchaseDate, costUSD, currentValueUSD}]
+function generateTimelineData(holdings, tf){
+  const now=new Date();
+  const cutoff=tfCutoff(tf);
+  // How many months to show
+  const totalMonths = tf==='1M'?1:tf==='3M'?3:tf==='6M'?6:tf==='1Y'?12:24;
+  const months=[];
+  for(let i=totalMonths;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    months.push({date:d,label:d.toLocaleString('default',{month:'short',year:'2-digit'})});
+  }
+  // For each month, sum up value of holdings that were purchased before that month
+  // We linearly interpolate cost -> currentValue over time
+  const values=months.map(m=>{
+    let total=0;
+    holdings.forEach(h=>{
+      const pd=new Date(h.purchaseDate||'2020-01-01');
+      if(pd>m.date)return;// not yet purchased
+      // interpolate: from costUSD at purchase to currentValueUSD now
+      const ageTotal=now-pd;const ageThen=m.date-pd;
+      const ratio=ageTotal>0?Math.min(ageThen/ageTotal,1):1;
+      const val=h.costUSD+(h.currentValueUSD-h.costUSD)*ratio;
+      total+=Math.max(val,0);
+    });
+    return total;
+  });
+  return {labels:months.map(m=>m.label),values};
+}
+
+function buildNetWorthChart(){
+  destroyChart('networth');
+  const ctx=document.getElementById('chart-networth');if(!ctx)return;
+  const tf=activeTF.dashboard;
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const stockHoldings=db.stocks.map(h=>({purchaseDate:h.purchaseDate,costUSD:(+h.shares||0)*(+h.avgCost||0),currentValueUSD:(+h.shares||0)*(+h.currentPrice||0)}));
+  const cryptoHoldings=db.crypto.map(h=>({purchaseDate:h.purchaseDate,costUSD:+h.investedUSD||0,currentValueUSD:+h.currentValueUSD||0}));
+  const allHoldings=[...stockHoldings,...cryptoHoldings];
+  const {labels,values}=generateTimelineData(allHoldings,tf);
+  const cash=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+  const converted=values.map(v=>v*fxRate+cash);
+  charts['networth']=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Net Worth',data:converted,borderColor:'#7c6dfa',backgroundColor:'rgba(124,109,250,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointBackgroundColor:'#7c6dfa',pointRadius:3,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+}
+
+function buildStocksTimeline(){
+  destroyChart('stocks-timeline');
+  const ctx=document.getElementById('chart-stocks-timeline');if(!ctx)return;
+  const tf=activeTF.stocks;
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const holdings=db.stocks.map(h=>({purchaseDate:h.purchaseDate,costUSD:(+h.shares||0)*(+h.avgCost||0),currentValueUSD:(+h.shares||0)*(+h.currentPrice||0)}));
+  const {labels,values}=generateTimelineData(holdings,tf);
+  const costs=generateTimelineData(holdings.map(h=>({...h,currentValueUSD:h.costUSD})),tf).values;
+  charts['stocks-timeline']=new Chart(ctx,{type:'line',data:{labels,datasets:[
+    {label:'Portfolio Value',data:values.map(v=>v*fxRate),borderColor:'#7c6dfa',backgroundColor:'rgba(124,109,250,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointRadius:3},
+    {label:'Cost Basis',data:costs.map(v=>v*fxRate),borderColor:'#6b6b8a',borderDash:[4,4],borderWidth:1.5,fill:false,tension:0.4,pointRadius:0}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+}
+
+function buildStocksPie(){
+  destroyChart('stocks-pie');
+  const ctx=document.getElementById('chart-stocks-pie');if(!ctx)return;
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const labels=db.stocks.map(h=>h.ticker);
+  const data=db.stocks.map(h=>(+h.shares||0)*(+h.currentPrice||0)*fxRate);
+  const colors=labels.map((_,i)=>PAL[i%PAL.length]);
+  if(!labels.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
+  charts['stocks-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#12121a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
+}
+
+function buildStocksGainLoss(){
+  destroyChart('stocks-gainloss');
+  const ctx=document.getElementById('chart-stocks-gainloss');if(!ctx)return;
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const labels=db.stocks.map(h=>h.ticker);
+  const data=db.stocks.map(h=>((+h.shares||0)*(+h.currentPrice||0)-(+h.shares||0)*(+h.avgCost||0))*fxRate);
+  const colors=data.map(v=>v>=0?'rgba(109,250,189,0.7)':'rgba(250,109,109,0.7)');
+  charts['stocks-gainloss']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Gain/Loss',data,backgroundColor:colors,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+}
+
+function buildCryptoTimeline(){
+  destroyChart('crypto-timeline');
+  const ctx=document.getElementById('chart-crypto-timeline');if(!ctx)return;
+  const tf=activeTF.crypto;
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const holdings=db.crypto.map(h=>({purchaseDate:h.purchaseDate,costUSD:+h.investedUSD||0,currentValueUSD:+h.currentValueUSD||0}));
+  const {labels,values}=generateTimelineData(holdings,tf);
+  const costs=generateTimelineData(holdings.map(h=>({...h,currentValueUSD:h.costUSD})),tf).values;
+  charts['crypto-timeline']=new Chart(ctx,{type:'line',data:{labels,datasets:[
+    {label:'Portfolio Value',data:values.map(v=>v*fxRate),borderColor:'#fa6d9e',backgroundColor:'rgba(250,109,158,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointRadius:3},
+    {label:'Cost Basis',data:costs.map(v=>v*fxRate),borderColor:'#6b6b8a',borderDash:[4,4],borderWidth:1.5,fill:false,tension:0.4,pointRadius:0}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+}
+
+function buildCryptoPie(){
+  destroyChart('crypto-pie');
+  const ctx=document.getElementById('chart-crypto-pie');if(!ctx)return;
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const labels=db.crypto.map(h=>h.symbol);
+  const data=db.crypto.map(h=>(+h.currentValueUSD||0)*fxRate);
+  const colors=labels.map((_,i)=>PAL[i%PAL.length]);
+  if(!labels.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
+  charts['crypto-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#12121a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
+}
+
+function buildCryptoGainLoss(){
+  destroyChart('crypto-gainloss');
+  const ctx=document.getElementById('chart-crypto-gainloss');if(!ctx)return;
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const labels=db.crypto.map(h=>h.symbol);
+  const data=db.crypto.map(h=>((+h.currentValueUSD||0)-(+h.investedUSD||0))*fxRate);
+  const colors=data.map(v=>v>=0?'rgba(109,250,189,0.7)':'rgba(250,109,109,0.7)');
+  charts['crypto-gainloss']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Gain/Loss',data,backgroundColor:colors,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+}
+
+function buildCashFlowChart(){
+  destroyChart('cashflow');
+  const ctx=document.getElementById('chart-cashflow');if(!ctx)return;
+  const tf=activeTF.cashflow;
+  const months_n=tf==='1M'?1:tf==='3M'?3:tf==='6M'?6:tf==='1Y'?12:24;
+  const now=new Date();
+  const months=[];
+  for(let i=months_n;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({label:d.toLocaleString('default',{month:'short',year:'2-digit'}),year:d.getFullYear(),month:d.getMonth()});}
+  const income=months.map(m=>db.transactions.filter(t=>t.type==='income'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+(+t.amount||0),0));
+  const expense=months.map(m=>db.transactions.filter(t=>t.type==='expense'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+(+t.amount||0),0));
+  charts['cashflow']=new Chart(ctx,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Income',data:income,backgroundColor:'rgba(109,250,189,0.7)',borderRadius:6,borderSkipped:false},{label:'Expenses',data:expense,backgroundColor:'rgba(250,109,109,0.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e8e8f0',font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+}
+
+function buildExpensesChart(){
+  destroyChart('expenses');
+  const ctx=document.getElementById('chart-expenses');if(!ctx)return;
+  const tf=activeTF.cashflow;const cutoff=tfCutoff(tf);
+  const filtered=db.transactions.filter(t=>t.type==='expense'&&new Date(t.date)>=cutoff);
+  const by={};filtered.forEach(t=>{by[t.category]=(by[t.category]||0)+(+t.amount||0);});
+  const labels=Object.keys(by),data=Object.values(by),colors=labels.map((_,i)=>PAL[i%PAL.length]);
+  if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
+  charts['expenses']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#12121a'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#e8e8f0',font:{family:'DM Mono',size:11},padding:8}}},cutout:'60%'}});
+}
+
+function buildIncVsExpChart(){
+  destroyChart('incvexp');
+  const ctx=document.getElementById('chart-incvexp');if(!ctx)return;
+  const tf=activeTF.cashflow;const cutoff=tfCutoff(tf);
+  const filtered=db.transactions.filter(t=>new Date(t.date)>=cutoff);
+  const inc=filtered.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
+  const exp=filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  charts['incvexp']=new Chart(ctx,{type:'bar',data:{labels:['Income','Expenses'],datasets:[{data:[inc,exp],backgroundColor:['rgba(109,250,189,0.7)','rgba(250,109,109,0.7)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:tickStyle},y:{grid:{color:gridColor},ticks:{...tickStyle,callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+}
+
+// ─── CALCULATIONS ─────────────────────────────────────────────────────────────
+function calcNetWorth(){
+  const cash=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const stocks=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0)*fxRate;
+  const crypto=db.crypto.reduce((s,h)=>s+(+h.currentValueUSD||0),0)*fxRate;
+  return cash+stocks+crypto;
+}
+
+// ─── REFRESH ──────────────────────────────────────────────────────────────────
+function refreshAll(){
+  showFxBars();
+  buildTfBar('dash-tf','dashboard');
+  buildTfBar('stocks-tf','stocks');
+  buildTfBar('crypto-tf','crypto');
+  buildTfBar('cf-tf','cashflow');
+  refreshDashboard();
+  refreshAccounts();
+  refreshStocks();
+  refreshCrypto();
+  refreshCashFlow();
+}
+
+function refreshDashboard(){
+  document.getElementById('dashboard-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const tf=activeTF.dashboard;const cutoff=tfCutoff(tf);
+  const nw=calcNetWorth();
+  const stockVal=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0)*fxRate;
+  const stockCost=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.avgCost||0)),0)*fxRate;
+  const cryptoVal=db.crypto.reduce((s,h)=>s+(+h.currentValueUSD||0),0)*fxRate;
+  const cryptoCost=db.crypto.reduce((s,h)=>s+(+h.investedUSD||0),0)*fxRate;
+  const portVal=stockVal+cryptoVal,portCost=stockCost+cryptoCost,portGain=portVal-portCost;
+  const portPct=portCost?(portGain/portCost*100):0;
+  // timeframe-filtered portfolio: holdings purchased within window
+  const tfStockVal=db.stocks.filter(h=>new Date(h.purchaseDate||'2000-01-01')>=cutoff).reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0)*fxRate;
+  const tfStockCost=db.stocks.filter(h=>new Date(h.purchaseDate||'2000-01-01')>=cutoff).reduce((s,h)=>s+((+h.shares||0)*(+h.avgCost||0)),0)*fxRate;
+  const tfCryptoVal=db.crypto.filter(h=>new Date(h.purchaseDate||'2000-01-01')>=cutoff).reduce((s,h)=>s+(+h.currentValueUSD||0),0)*fxRate;
+  const tfCryptoCost=db.crypto.filter(h=>new Date(h.purchaseDate||'2000-01-01')>=cutoff).reduce((s,h)=>s+(+h.investedUSD||0),0)*fxRate;
+  const tfGain=(tfStockVal+tfCryptoVal)-(tfStockCost+tfCryptoCost);
+  const tfPct=(tfStockCost+tfCryptoCost)?tfGain/(tfStockCost+tfCryptoCost)*100:0;
+  const totalIncome=db.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
+  const totalExpense=db.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  const savingsRate=totalIncome?((totalIncome-totalExpense)/totalIncome*100).toFixed(1):0;
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Net Worth</div><div class="stat-value">${fmt(nw)}</div></div>
+    <div class="stat-card"><div class="stat-label">All-Time Portfolio</div><div class="stat-value">${fmt(portVal)}</div><div class="stat-change ${portGain>=0?'up':'down'}">${portGain>=0?'▲':'▼'} ${fmt(Math.abs(portGain))} (${fmtPct(portPct)})</div></div>
+    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>=0?'positive':'negative'}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>=0?'up':'down'}">${fmtPct(tfPct)} in selected window</div></div>
+    <div class="stat-card"><div class="stat-label">Savings Rate</div><div class="stat-value">${savingsRate}%</div><div class="stat-change">${fmt(totalIncome)} income</div></div>
+  `;
+  buildAllocationChart();buildAssetsChart();buildNetWorthChart();
+}
+
+function refreshAccounts(){
+  const tbody=document.getElementById('accounts-table');if(!tbody)return;
+  const empty=document.getElementById('accounts-empty');
+  const total=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+  document.getElementById('accounts-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Cash</div><div class="stat-value">${fmt(total)}</div></div>
+    <div class="stat-card"><div class="stat-label">Accounts</div><div class="stat-value">${db.accounts.length}</div></div>
+  `;
+  if(!db.accounts.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=db.accounts.map(a=>`
+    <tr><td><strong>${a.name}</strong></td><td>${a.bank||'—'}</td><td><span class="badge cash">${a.type||'checking'}</span></td>
+    <td><strong>${fmt(a.balance)}</strong></td><td style="color:var(--muted)">${a.updated||'—'}</td>
+    <td><button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="deleteItem('accounts','${a.id}')">✕</button></td></tr>`).join('');
+}
+
+function refreshStocks(){
+  const tbody=document.getElementById('stocks-table');if(!tbody)return;
+  const empty=document.getElementById('stocks-empty');
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const tf=activeTF.stocks;const cutoff=tfCutoff(tf);
+  const totalValUSD=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0);
+  const totalCostUSD=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.avgCost||0)),0);
+  const totalGain=(totalValUSD-totalCostUSD)*fxRate;
+  const pct=totalCostUSD?((totalValUSD-totalCostUSD)/totalCostUSD*100):0;
+  // TF-filtered
+  const tfHoldings=db.stocks.filter(h=>new Date(h.purchaseDate||'2000-01-01')>=cutoff);
+  const tfVal=tfHoldings.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0)*fxRate;
+  const tfCost=tfHoldings.reduce((s,h)=>s+((+h.shares||0)*(+h.avgCost||0)),0)*fxRate;
+  const tfGain=tfVal-tfCost;const tfPct=tfCost?(tfGain/tfCost*100):0;
+  const code=getCurrencyCode();
+  document.getElementById('stocks-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Value</div><div class="stat-value">${fmt(totalValUSD*fxRate)}</div>${code!=='USD'?`<div class="stat-change">${fmtUSD(totalValUSD)}</div>`:''}</div>
+    <div class="stat-card"><div class="stat-label">All-Time Gain/Loss</div><div class="stat-value ${totalGain>=0?'positive':'negative'}">${fmt(totalGain)}</div><div class="stat-change ${totalGain>=0?'up':'down'}">${fmtPct(pct)}</div></div>
+    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>=0?'positive':'negative'}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>=0?'up':'down'}">${fmtPct(tfPct)} · ${tfHoldings.length} holding${tfHoldings.length!==1?'s':''}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Holdings</div><div class="stat-value">${db.stocks.length}</div></div>
+  `;
+  buildStocksTimeline();buildStocksPie();buildStocksGainLoss();
+  if(!db.stocks.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=db.stocks.map(h=>{
+    const valUSD=(+h.shares||0)*(+h.currentPrice||0);
+    const costUSD=(+h.shares||0)*(+h.avgCost||0);
+    const g=(valUSD-costUSD)*fxRate;const p=costUSD?((valUSD-costUSD)/costUSD*100):0;
+    const inWindow=new Date(h.purchaseDate||'2000-01-01')>=cutoff;
+    const autoTag=h.autoFetch?`<span style="font-size:10px;color:var(--accent3);margin-left:4px" title="Auto-fetched">●</span>`:`<span style="font-size:10px;color:var(--muted);margin-left:4px" title="Manual">○</span>`;
+    return`<tr class="${!inWindow&&tf!=='ALL'?'tf-dimmed':''}">
+      <td><strong>${h.ticker}</strong>${autoTag}</td>
+      <td style="color:var(--muted)">${h.name||''}</td>
+      <td style="color:var(--muted);font-size:12px">${h.purchaseDate||'—'}</td>
+      <td>${h.shares}</td><td>${fmtUSD(h.avgCost)}</td>
+      <td><div class="price-cell">
+        <span class="price-display" id="pd-s-${h.id}" onclick="startEdit('stocks','${h.id}')">${fmtUSD(h.currentPrice)}</span>
+        <div class="price-input-wrap" id="pi-s-${h.id}">
+          <input class="inline-input" id="pv-s-${h.id}" type="number" step="any" value="${h.currentPrice}">
+          <button class="inline-save" onclick="saveInlinePrice('stocks','${h.id}')">✓</button>
+          <button class="inline-cancel" onclick="cancelEdit('stocks','${h.id}')">✕</button>
+        </div>
+      </div></td>
+      <td><strong>${fmt(valUSD*fxRate)}</strong></td>
+      <td class="${g>=0?'positive':'negative'}">${fmt(g)}<br><small>${fmtPct(p)}</small></td>
+      <td><button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="deleteItem('stocks','${h.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function refreshCrypto(){
+  const tbody=document.getElementById('crypto-table');if(!tbody)return;
+  const empty=document.getElementById('crypto-empty');
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const tf=activeTF.crypto;const cutoff=tfCutoff(tf);
+  const totalValUSD=db.crypto.reduce((s,h)=>s+(+h.currentValueUSD||0),0);
+  const totalInvUSD=db.crypto.reduce((s,h)=>s+(+h.investedUSD||0),0);
+  const totalGain=(totalValUSD-totalInvUSD)*fxRate;const pct=totalInvUSD?((totalValUSD-totalInvUSD)/totalInvUSD*100):0;
+  const tfHoldings=db.crypto.filter(h=>new Date(h.purchaseDate||'2000-01-01')>=cutoff);
+  const tfVal=tfHoldings.reduce((s,h)=>s+(+h.currentValueUSD||0),0)*fxRate;
+  const tfCost=tfHoldings.reduce((s,h)=>s+(+h.investedUSD||0),0)*fxRate;
+  const tfGain=tfVal-tfCost;const tfPct=tfCost?(tfGain/tfCost*100):0;
+  const code=getCurrencyCode();
+  document.getElementById('crypto-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Value</div><div class="stat-value">${fmt(totalValUSD*fxRate)}</div>${code!=='USD'?`<div class="stat-change">${fmtUSD(totalValUSD)}</div>`:''}</div>
+    <div class="stat-card"><div class="stat-label">All-Time Gain/Loss</div><div class="stat-value ${totalGain>=0?'positive':'negative'}">${fmt(totalGain)}</div><div class="stat-change ${totalGain>=0?'up':'down'}">${fmtPct(pct)}</div></div>
+    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>=0?'positive':'negative'}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>=0?'up':'down'}">${fmtPct(tfPct)} · ${tfHoldings.length} asset${tfHoldings.length!==1?'s':''}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Assets</div><div class="stat-value">${db.crypto.length}</div></div>
+  `;
+  buildCryptoTimeline();buildCryptoPie();buildCryptoGainLoss();
+  if(!db.crypto.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=db.crypto.map(h=>{
+    const valUSD=+h.currentValueUSD||0;const invUSD=+h.investedUSD||0;
+    const g=(valUSD-invUSD)*fxRate;const p=invUSD?((valUSD-invUSD)/invUSD*100):0;
+    const inWindow=new Date(h.purchaseDate||'2000-01-01')>=cutoff;
+    return`<tr class="${!inWindow&&tf!=='ALL'?'tf-dimmed':''}">
+      <td><strong>${h.name}</strong></td>
+      <td><span class="badge crypto">${h.symbol}</span></td>
+      <td style="color:var(--muted);font-size:12px">${h.purchaseDate||'—'}</td>
+      <td>${fmtUSD(h.investedUSD)}</td>
+      <td><div class="price-cell">
+        <span class="price-display" id="pd-c-${h.id}" onclick="startEditCryptoValue('${h.id}')">${fmtUSD(h.currentValueUSD)}</span>
+        <div class="price-input-wrap" id="pi-c-${h.id}">
+          <input class="inline-input" id="pv-c-${h.id}" type="number" step="any" value="${h.currentValueUSD}">
+          <button class="inline-save" onclick="saveInlineCryptoValue('${h.id}')">✓</button>
+          <button class="inline-cancel" onclick="cancelEditCrypto('${h.id}')">✕</button>
+        </div>
+      </div></td>
+      <td><strong>${fmt(valUSD*fxRate)}</strong></td>
+      <td class="${g>=0?'positive':'negative'}">${fmt(g)}<br><small>${fmtPct(p)}</small></td>
+      <td><button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="deleteItem('crypto','${h.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function refreshCashFlow(){
+  const tbody=document.getElementById('cashflow-table');if(!tbody)return;
+  const empty=document.getElementById('cashflow-empty');
+  const tf=activeTF.cashflow;const cutoff=tfCutoff(tf);
+  const filtered=db.transactions.filter(t=>new Date(t.date)>=cutoff);
+  const totalIncome=filtered.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
+  const totalExpense=filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  const net=totalIncome-totalExpense;
+  document.getElementById('cashflow-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Income (${tf})</div><div class="stat-value positive">${fmt(totalIncome)}</div></div>
+    <div class="stat-card"><div class="stat-label">Expenses (${tf})</div><div class="stat-value negative">${fmt(totalExpense)}</div></div>
+    <div class="stat-card"><div class="stat-label">Net (${tf})</div><div class="stat-value ${net>=0?'positive':'negative'}">${fmt(net)}</div></div>
+    <div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value">${filtered.length}</div></div>
+  `;
+  buildCashFlowChart();buildExpensesChart();buildIncVsExpChart();
+  if(!db.transactions.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  const sorted=[...filtered].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  tbody.innerHTML=sorted.map(t=>`
+    <tr>
+      <td style="color:var(--muted)">${t.date}</td>
+      <td><strong>${t.description}</strong></td>
+      <td style="color:var(--muted)">${t.category}</td>
+      <td><span class="badge ${t.type}">${t.type}</span></td>
+      <td class="${t.type==='income'?'positive':'negative'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>
+      <td><button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="deleteItem('transactions','${t.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+// ─── INLINE EDITING ───────────────────────────────────────────────────────────
+function startEdit(col,id){
+  document.getElementById(`pd-s-${id}`).classList.add('hidden');
+  document.getElementById(`pi-s-${id}`).classList.add('editing');
+  const inp=document.getElementById(`pv-s-${id}`);inp.focus();inp.select();
+}
+function cancelEdit(col,id){
+  document.getElementById(`pd-s-${id}`).classList.remove('hidden');
+  document.getElementById(`pi-s-${id}`).classList.remove('editing');
+}
+function saveInlinePrice(col,id){
+  const val=parseFloat(document.getElementById(`pv-s-${id}`).value);
+  if(isNaN(val)||val<0)return;
+  const item=db.stocks.find(i=>i.id===id);
+  if(item){item.currentPrice=val;item.autoFetch=false;}
+  save();
+}
+function startEditCryptoValue(id){
+  document.getElementById(`pd-c-${id}`).classList.add('hidden');
+  document.getElementById(`pi-c-${id}`).classList.add('editing');
+  const inp=document.getElementById(`pv-c-${id}`);inp.focus();inp.select();
+}
+function cancelEditCrypto(id){
+  document.getElementById(`pd-c-${id}`).classList.remove('hidden');
+  document.getElementById(`pi-c-${id}`).classList.remove('editing');
+}
+function saveInlineCryptoValue(id){
+  const val=parseFloat(document.getElementById(`pv-c-${id}`).value);
+  if(isNaN(val)||val<0)return;
+  const item=db.crypto.find(i=>i.id===id);
+  if(item)item.currentValueUSD=val;
+  save();
+}
+
+// ─── MODALS ───────────────────────────────────────────────────────────────────
+let selectedCrypto=null;
+
+function openModal(type){
+  const overlay=document.getElementById('modal-overlay');
+  const content=document.getElementById('modal-content');
+  const code=getCurrencyCode();
+  const today=new Date().toISOString().split('T')[0];
+  let html='';
+
+  if(type==='account'){
+    html=`<div class="modal-title">Add Bank Account</div>
+      <div class="form-group"><label class="form-label">Account Name</label><input class="form-input" id="f-name" placeholder="e.g. Cuenta Ahorros Bancolombia"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Bank</label><input class="form-input" id="f-bank" placeholder="e.g. Bancolombia"></div>
+        <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="f-type"><option>checking</option><option>savings</option><option>investment</option><option>other</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Current Balance (${code})</label><input class="form-input" id="f-balance" type="number" step="any" placeholder="0"></div>
+      <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveAccount()">Add Account</button></div>`;
+
+  }else if(type==='stock'){
+    html=`<div class="modal-title">Add Stock / ETF</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Ticker</label><input class="form-input" id="f-ticker" placeholder="AAPL" style="text-transform:uppercase"></div>
+        <div class="form-group"><label class="form-label">Name (optional)</label><input class="form-input" id="f-name" placeholder="Apple Inc."></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Shares</label><input class="form-input" id="f-shares" type="number" step="any" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Avg Cost/Share (USD)</label><input class="form-input" id="f-avgcost" type="number" step="any" placeholder="0.00"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Current Price (USD)</label><input class="form-input" id="f-price" type="number" step="any" placeholder="0.00"></div>
+        <div class="form-group"><label class="form-label">Purchase Date</label><input class="form-input" id="f-date" type="date" value="${today}"></div>
+      </div>
+      <div class="hint" style="margin-bottom:12px">💡 Prices in USD — auto-converted to ${code} using your settings rate.</div>
+      <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveStock()">Add Holding</button></div>`;
+
+  }else if(type==='crypto'){
+    selectedCrypto=null;
+    const opts=CRYPTO_LIST.map(c=>`
+      <div class="crypto-opt" id="co-${c.symbol}" onclick="selectCrypto('${c.symbol}')">
+        <div><div class="co-symbol">${c.symbol}</div><div class="co-name">${c.name}</div></div>
+      </div>`).join('');
+    html=`<div class="modal-title">Add Crypto</div>
+      <div class="form-group">
+        <label class="form-label">Select Asset</label>
+        <input class="crypto-search" id="crypto-search" placeholder="Search by name or symbol..." oninput="filterCryptoList()">
+        <div class="crypto-select-grid" id="crypto-grid">${opts}</div>
+      </div>
+      <div id="crypto-selected-info" style="display:none;background:rgba(250,109,158,0.08);border:1px solid rgba(250,109,158,0.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;">
+        Selected: <strong id="crypto-selected-label">—</strong>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">USD Invested</label><input class="form-input" id="f-invested" type="number" step="any" placeholder="e.g. 500"><div class="hint">Total you put in (USD)</div></div>
+        <div class="form-group"><label class="form-label">Current Value (USD)</label><input class="form-input" id="f-current" type="number" step="any" placeholder="e.g. 620"><div class="hint">What it's worth now</div></div>
+      </div>
+      <div class="form-group"><label class="form-label">Purchase Date</label><input class="form-input" id="f-date" type="date" value="${today}"></div>
+      <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveCrypto()">Add Asset</button></div>`;
+
+  }else if(type==='transaction'){
+    html=`<div class="modal-title">Add Transaction</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="f-type"><option value="income">Income</option><option value="expense">Expense</option></select></div>
+        <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="f-date" type="date" value="${today}"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="f-desc" placeholder="e.g. Monthly salary"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Category</label><input class="form-input" id="f-cat" placeholder="e.g. Salary, Arriendo..."></div>
+        <div class="form-group"><label class="form-label">Amount (${code})</label><input class="form-input" id="f-amount" type="number" step="any" placeholder="0"></div>
+      </div>
+      <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveTransaction()">Add Transaction</button></div>`;
+  }
+
+  content.innerHTML=html;
+  overlay.classList.add('open');
+}
+
+function filterCryptoList(){
+  const q=document.getElementById('crypto-search').value.toLowerCase();
+  CRYPTO_LIST.forEach(c=>{const el=document.getElementById('co-'+c.symbol);if(el)el.style.display=(c.symbol.toLowerCase().includes(q)||c.name.toLowerCase().includes(q))?'':'none';});
+}
+
+function selectCrypto(symbol){
+  document.querySelectorAll('.crypto-opt').forEach(el=>el.classList.remove('selected'));
+  document.getElementById('co-'+symbol).classList.add('selected');
+  selectedCrypto=CRYPTO_LIST.find(c=>c.symbol===symbol);
+  const info=document.getElementById('crypto-selected-info');info.style.display='block';
+  document.getElementById('crypto-selected-label').textContent=`${selectedCrypto.name} (${selectedCrypto.symbol})`;
+}
+
+function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
+function closeModalOutside(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+
+function saveAccount(){
+  const name=document.getElementById('f-name').value.trim();
+  const bank=document.getElementById('f-bank').value.trim();
+  const type=document.getElementById('f-type').value;
+  const balance=document.getElementById('f-balance').value;
+  if(!name||balance==='')return alert('Please fill in name and balance.');
+  db.accounts.push({id:uid(),name,bank,type,balance:+balance,updated:new Date().toLocaleDateString()});
+  save();closeModal();
+}
+
+function saveStock(){
+  const ticker=document.getElementById('f-ticker').value.trim().toUpperCase();
+  const name=document.getElementById('f-name').value.trim();
+  const shares=document.getElementById('f-shares').value;
+  const avgCost=document.getElementById('f-avgcost').value;
+  const currentPrice=document.getElementById('f-price').value;
+  const purchaseDate=document.getElementById('f-date').value;
+  if(!ticker||!shares||!avgCost||!currentPrice)return alert('Please fill in all required fields.');
+  db.stocks.push({id:uid(),ticker,name,shares:+shares,avgCost:+avgCost,currentPrice:+currentPrice,purchaseDate});
+  save();closeModal();
+}
+
+function saveCrypto(){
+  if(!selectedCrypto)return alert('Please select a crypto asset.');
+  const invested=document.getElementById('f-invested').value;
+  const current=document.getElementById('f-current').value;
+  const purchaseDate=document.getElementById('f-date').value;
+  if(!invested||!current)return alert('Please fill in invested and current value.');
+  if(db.crypto.find(h=>h.symbol===selectedCrypto.symbol))return alert(`${selectedCrypto.name} already in portfolio.`);
+  db.crypto.push({id:uid(),name:selectedCrypto.name,symbol:selectedCrypto.symbol,cgId:selectedCrypto.cgId,investedUSD:+invested,currentValueUSD:+current,purchaseDate});
+  save();closeModal();
+}
+
+function saveTransaction(){
+  const type=document.getElementById('f-type').value;
+  const date=document.getElementById('f-date').value;
+  const description=document.getElementById('f-desc').value.trim();
+  const category=document.getElementById('f-cat').value.trim();
+  const amount=document.getElementById('f-amount').value;
+  if(!description||!category||!amount||!date)return alert('Please fill in all fields.');
+  db.transactions.push({id:uid(),type,date,description,category,amount:+amount});
+  save();closeModal();
+}
+
+function deleteItem(collection,id){
+  if(!confirm('Remove this item?'))return;
+  db[collection]=db[collection].filter(i=>i.id!==id);
+  save();
+}
+
+// ─── PRICE FETCH ──────────────────────────────────────────────────────────────
+async function fetchStockPrices(){
+  if(!db.stocks.length)return;
+  const btn=document.getElementById('stocks-refresh-btn');
+  const status=document.getElementById('stocks-fetch-status');
+  btn.classList.add('loading');btn.textContent='⟳ Fetching...';status.textContent='';status.className='fetch-status';
+  let updated=0,failed=[];
+  for(const h of db.stocks){
+    try{
+      const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(h.ticker)}?interval=1d&range=1d`;
+      const res=await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+      if(!res.ok)throw new Error();
+      const data=await res.json();
+      const price=data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if(price&&price>0){h.currentPrice=price;h.autoFetch=true;updated++;}else failed.push(h.ticker);
+    }catch(e){failed.push(h.ticker);}
+  }
+  save();btn.classList.remove('loading');btn.textContent='⟳ Refresh US Prices';
+  if(updated>0&&!failed.length){status.textContent=`✓ ${updated} updated`;status.className='fetch-status ok';}
+  else if(updated>0){status.textContent=`✓ ${updated} updated · ${failed.join(', ')} manual`;status.className='fetch-status ok';}
+  else{status.textContent='Could not fetch — update manually';status.className='fetch-status err';}
+  setTimeout(()=>{status.textContent='';},6000);
+}
+
+async function fetchCryptoPrices(){
+  if(!db.crypto.length)return;
+  const btn=document.getElementById('crypto-refresh-btn');
+  const status=document.getElementById('crypto-fetch-status');
+  btn.classList.add('loading');btn.textContent='⟳ Fetching...';status.textContent='';status.className='fetch-status';
+  const ids=db.crypto.map(h=>h.cgId).filter(Boolean);
+  if(!ids.length){btn.classList.remove('loading');btn.textContent='⟳ Refresh Prices';status.textContent='No known assets';status.className='fetch-status err';return;}
+  try{
+    const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(',')}&vs_currencies=usd`);
+    if(!res.ok)throw new Error();
+    const data=await res.json();
+    let updated=0,failed=[];
+    for(const h of db.crypto){
+      if(h.cgId&&data[h.cgId]?.usd){
+        const priceNow=data[h.cgId].usd;
+        if(h._lastFetchedPrice){h.currentValueUSD=(h.currentValueUSD||h.investedUSD)*(priceNow/h._lastFetchedPrice);}
+        h._lastFetchedPrice=priceNow;updated++;
+      }else failed.push(h.symbol);
+    }
+    save();btn.classList.remove('loading');btn.textContent='⟳ Refresh Prices';
+    if(updated>0&&!failed.length){status.textContent=`✓ ${updated} updated`;status.className='fetch-status ok';}
+    else if(updated>0){status.textContent=`✓ ${updated} · ${failed.join(', ')} manual`;status.className='fetch-status ok';}
+    else{status.textContent='Could not fetch';status.className='fetch-status err';}
+  }catch(e){btn.classList.remove('loading');btn.textContent='⟳ Refresh Prices';status.textContent='Fetch failed';status.className='fetch-status err';}
+  setTimeout(()=>{status.textContent='';},6000);
+}
+
+// ─── DATA MANAGEMENT ──────────────────────────────────────────────────────────
+function exportData(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`vault-backup-${new Date().toISOString().split('T')[0]}.json`;a.click();
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{try{db=JSON.parse(ev.target.result);save();alert('Imported!');}catch(err){alert('Invalid file.');}};
+  reader.readAsText(file);
+}
+function clearAllData(){
+  if(!confirm('This will permanently delete ALL your data. Are you sure?'))return;
+  db={accounts:[],stocks:[],crypto:[],transactions:[],settings:{currency:'COP',fxRate:4200}};
+  save();alert('Cleared.');
+}
+
+// ─── GOOGLE DRIVE SYNC ────────────────────────────────────────────────────────
+const GDRIVE_CLIENT_ID = '976480679950-b6dvjq75a3t9ndd3gksj719g4kj8sdd3.apps.googleusercontent.com';
+const GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.appdata';
+const VAULT_FILENAME = 'vault-finance.json';
+
+let gToken = null;
+let gDriveFileId = localStorage.getItem('vault_drive_file_id') || null;
+let tokenClient = null;
+
+function initGoogleAuth() {
+  if (!window.google) { setTimeout(initGoogleAuth, 500); return; }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { setSyncStatus('Auth failed: ' + resp.error, 'err'); return; }
+      gToken = resp.access_token;
+      localStorage.setItem('vault_gtoken_exp', Date.now() + (resp.expires_in * 1000));
+      setSyncStatus('Connected ✓', 'ok');
+      updateSyncUI(true);
+      await pullFromDrive();
+    }
+  });
+  // Restore session if token still valid
+  const exp = +localStorage.getItem('vault_gtoken_exp') || 0;
+  if (exp > Date.now() + 60000) {
+    // Token might still be alive — try a silent refresh
+    tokenClient.requestAccessToken({ prompt: '' });
+  }
+}
+
+function handleSyncClick() {
+  if (gToken) {
+    // Already connected — disconnect
+    if (confirm('Disconnect Google Drive? Your local data stays intact.')) {
+      gToken = null;
+      gDriveFileId = null;
+      localStorage.removeItem('vault_drive_file_id');
+      localStorage.removeItem('vault_gtoken_exp');
+      updateSyncUI(false);
+      setSyncStatus('Disconnected', '');
+    }
+    return;
+  }
+  if (!tokenClient) { setSyncStatus('Google not loaded yet, try again', 'err'); return; }
+  setSyncStatus('Connecting...', '');
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function updateSyncUI(connected) {
+  const btn = document.getElementById('sync-btn');
+  const btnS = document.getElementById('sync-btn-settings');
+  const icon = document.getElementById('sync-btn-icon');
+  const iconS = document.getElementById('sync-icon-settings');
+  const label = document.getElementById('sync-btn-label');
+  const labelS = document.getElementById('sync-label-settings');
+  const sub = document.getElementById('drive-status-sub');
+  const actRow = document.getElementById('drive-actions-row');
+  const pullRow = document.getElementById('drive-pull-row');
+
+  if (connected) {
+    if (btn) { btn.classList.add('connected'); }
+    if (btnS) { btnS.classList.add('connected'); }
+    if (icon) icon.textContent = '✓';
+    if (iconS) iconS.textContent = '✓';
+    if (label) label.textContent = 'Drive Connected';
+    if (labelS) labelS.textContent = 'Disconnect';
+    if (sub) sub.textContent = 'Syncing to Google Drive · vault-finance.json';
+    if (actRow) actRow.style.display = 'flex';
+    if (pullRow) pullRow.style.display = 'flex';
+  } else {
+    if (btn) { btn.classList.remove('connected'); }
+    if (btnS) { btnS.classList.remove('connected'); }
+    if (icon) icon.textContent = '☁';
+    if (iconS) iconS.textContent = '☁';
+    if (label) label.textContent = 'Connect Google Drive';
+    if (labelS) labelS.textContent = 'Connect';
+    if (sub) sub.textContent = 'Not connected';
+    if (actRow) actRow.style.display = 'none';
+    if (pullRow) pullRow.style.display = 'none';
+  }
+}
+
+function setSyncStatus(msg, type) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'sync-status' + (type ? ' ' + type : '');
+}
+
+async function driveRequest(method, url, body, isJson=true) {
+  const headers = { 'Authorization': 'Bearer ' + gToken };
+  if (isJson && body) headers['Content-Type'] = 'application/json';
+  const res = await fetch(url, { method, headers, body: body ? (isJson ? JSON.stringify(body) : body) : undefined });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Drive API ${res.status}: ${err}`);
+  }
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return res.json();
+  return res.text();
+}
+
+async function findOrCreateFile() {
+  // Search in appDataFolder
+  const q = encodeURIComponent(`name='${VAULT_FILENAME}' and trashed=false`);
+  const list = await driveRequest('GET', `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name)`);
+  if (list.files && list.files.length > 0) {
+    gDriveFileId = list.files[0].id;
+    localStorage.setItem('vault_drive_file_id', gDriveFileId);
+    return gDriveFileId;
+  }
+  // Create new file
+  const meta = { name: VAULT_FILENAME, parents: ['appDataFolder'] };
+  const created = await driveRequest('POST', 'https://www.googleapis.com/drive/v3/files?fields=id', meta);
+  gDriveFileId = created.id;
+  localStorage.setItem('vault_drive_file_id', gDriveFileId);
+  return gDriveFileId;
+}
+
+async function syncToDrive(manual=false) {
+  if (!gToken) return;
+  const btn = document.getElementById('sync-btn');
+  if (btn) btn.classList.add('syncing');
+  setSyncStatus('Saving to Drive...', '');
+  try {
+    const fileId = gDriveFileId || await findOrCreateFile();
+    const content = JSON.stringify(db, null, 2);
+    const blob = new Blob([content], { type: 'application/json' });
+    // Use multipart upload to update content
+    const boundary = 'vault_boundary_' + Date.now();
+    const metaPart = JSON.stringify({ name: VAULT_FILENAME });
+    const body = `--${boundary}\r\nContent-Type: application/json\r\n\r\n${metaPart}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${boundary}--`;
+    const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': 'Bearer ' + gToken,
+        'Content-Type': `multipart/related; boundary=${boundary}`
+      },
+      body
+    });
+    if (!res.ok) throw new Error('Upload failed ' + res.status);
+    const now = new Date().toLocaleTimeString();
+    setSyncStatus(`✓ Saved ${now}`, 'ok');
+    if (manual) setTimeout(() => setSyncStatus('', ''), 4000);
+  } catch(e) {
+    setSyncStatus('Save failed — ' + e.message.slice(0,40), 'err');
+  } finally {
+    if (btn) btn.classList.remove('syncing');
+  }
+}
+
+async function pullFromDrive() {
+  if (!gToken) return;
+  setSyncStatus('Loading from Drive...', '');
+  try {
+    const fileId = gDriveFileId || await findOrCreateFile();
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { 'Authorization': 'Bearer ' + gToken }
+    });
+    if (res.status === 404) {
+      // File doesn't exist yet — push local data
+      await syncToDrive();
+      setSyncStatus('✓ First sync done', 'ok');
+      return;
+    }
+    if (!res.ok) throw new Error('Download failed ' + res.status);
+    const text = await res.text();
+    if (!text || text.trim() === '') {
+      await syncToDrive();
+      setSyncStatus('✓ Initialized Drive file', 'ok');
+      return;
+    }
+    const remote = JSON.parse(text);
+    db = { ...db, ...remote };
+    if (!db.settings) db.settings = { currency: 'COP', fxRate: 4200 };
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    refreshAll();
+    updateSettingsUI();
+    setSyncStatus('✓ Loaded from Drive', 'ok');
+    setTimeout(() => setSyncStatus('Connected ✓', 'ok'), 3000);
+  } catch(e) {
+    if (e.message.includes('404') || e.message.includes('not found')) {
+      await syncToDrive();
+    } else {
+      setSyncStatus('Load failed — ' + e.message.slice(0,40), 'err');
+    }
+  }
+}
+
+// Override save() to also sync to Drive after local save
+const _localSave = save;
+function save() {
+  localStorage.setItem(DB_KEY, JSON.stringify(db));
+  refreshAll();
+  if (gToken) {
+    clearTimeout(save._driveTimer);
+    save._driveTimer = setTimeout(() => syncToDrive(), 1500); // debounce 1.5s
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+load();
+refreshAll();
+updateSettingsUI();
+initGoogleAuth();
+</script>
+</body>
+</html>
