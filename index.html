@@ -57,7 +57,7 @@
   .tf-btn:hover{color:var(--text);}
   .tf-btn.active{background:rgba(124,109,250,0.2);border-color:var(--accent);color:var(--accent);}
   /* Stat cards */
-  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:28px;}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
   .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
   .stat-card:hover{border-color:var(--accent);}
   .stat-card::after{content:'';position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle at top right,var(--card-glow),transparent 70%);}
@@ -67,12 +67,13 @@
   .stat-change.up{color:var(--green);}.stat-change.down{color:var(--danger);}
   /* Charts */
   .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;}
-  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+  .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;min-width:0;}
   .chart-card.wide{grid-column:1/-1;}
   .chart-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text);}
   .chart-wrap{position:relative;height:220px;}.chart-wrap.tall{height:300px;}
   /* Data cards */
   .data-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
+  .data-card-inner{overflow-x:auto;-webkit-overflow-scrolling:touch;}
   .data-card-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;}
   .data-card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
   .header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
@@ -189,52 +190,65 @@
     .sidebar{display:none;}
     .mobile-topbar{display:flex;}
     .bottom-nav{display:flex;}
-    .main{margin-left:0;padding:16px;padding-top:72px;padding-bottom:76px;}
-    /* Stack stat cards 2 per row on mobile */
-    .stat-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
-    .stat-card{padding:14px;}
-    .stat-value{font-size:18px;}
+    .main{margin-left:0 !important;padding:12px;padding-top:68px;padding-bottom:76px;min-width:0;}
+    /* Stat cards: 2 columns */
+    .stat-grid{grid-template-columns:1fr 1fr !important;gap:10px;margin-bottom:14px;}
+    .stat-card{padding:12px;}
+    .stat-value{font-size:17px !important;}
     .stat-label{font-size:10px;}
-    /* Charts single column */
-    .chart-grid{grid-template-columns:1fr;gap:12px;margin-bottom:16px;}
-    .chart-card.wide{grid-column:1;}
-    .chart-wrap{height:180px;}
-    .chart-wrap.tall{height:220px;}
-    /* Page header stack */
-    .page-header{flex-direction:column;align-items:flex-start;margin-bottom:16px;gap:8px;}
-    .page-title{font-size:22px;}
-    /* Tables scroll horizontally */
-    .data-card{overflow-x:auto;}
-    table{min-width:520px;}
-    /* Modal full screen on mobile */
-    .modal-overlay{align-items:flex-end;}
-    .modal{width:100%;max-width:100%;border-radius:20px 20px 0 0;padding:20px;max-height:88vh;}
-    /* Timeframe bar wraps */
-    .tf-bar{flex-wrap:wrap;}
-    .tf-btn{font-size:10px;padding:4px 8px;}
-    /* Header actions stack */
-    .data-card-header{flex-direction:column;align-items:flex-start;}
-    .header-actions{width:100%;justify-content:flex-start;}
-    /* Form rows single col on very small */
-    .fx-bar{font-size:11px;}
-    /* Page sub hidden on mobile to save space */
+    .stat-change{font-size:10px;}
+    /* Charts: single column, shorter */
+    .chart-grid{grid-template-columns:1fr !important;gap:10px;margin-bottom:14px;}
+    .chart-card{padding:14px;}
+    .chart-card.wide{grid-column:1 !important;}
+    .chart-wrap{height:160px !important;}
+    .chart-wrap.tall{height:200px !important;}
+    /* Doughnut charts need extra height on mobile for bottom legend */
+    #page-stocks .chart-card:nth-child(2) .chart-wrap,
+    #page-crypto .chart-card:nth-child(2) .chart-wrap,
+    #page-cashflow .chart-card:nth-child(2) .chart-wrap{height:220px !important;}
+    .chart-title{font-size:12px;margin-bottom:10px;}
+    /* Tables: horizontal scroll */
+    .data-card{overflow:visible;}
+    .data-card-inner{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    table{min-width:480px;width:100%;}
+    th,td{padding:9px 12px;font-size:12px;}
+    /* Page header */
+    .page-header{flex-direction:column;align-items:flex-start;margin-bottom:14px;gap:6px;}
+    .page-title{font-size:20px !important;}
     .page-sub{display:none;}
+    /* Modal slides up from bottom */
+    .modal-overlay{align-items:flex-end;}
+    .modal{width:100% !important;max-width:100% !important;border-radius:20px 20px 0 0;padding:20px;max-height:88vh;}
+    /* Timeframe bar */
+    .tf-bar{flex-wrap:wrap;gap:4px;}
+    .tf-btn{font-size:10px;padding:4px 8px;}
+    /* Header actions */
+    .data-card-header{flex-direction:column;align-items:flex-start;gap:10px;padding:12px 14px;}
+    .header-actions{width:100%;flex-wrap:wrap;}
+    /* FX bar */
+    .fx-bar{font-size:11px;padding:8px 12px;}
+    /* Settings */
+    .settings-section{padding:16px;}
+    .settings-row{flex-wrap:wrap;gap:8px;}
+    /* Crypto grid */
+    .crypto-select-grid{grid-template-columns:1fr 1fr;}
   }
 
   @media(max-width:480px){
-    .stat-grid{grid-template-columns:1fr 1fr;gap:8px;}
-    .stat-value{font-size:16px;}
-    .form-row{grid-template-columns:1fr;}
-    .main{padding:12px;padding-top:68px;padding-bottom:76px;}
+    .stat-grid{grid-template-columns:1fr 1fr !important;gap:8px;}
+    .stat-value{font-size:15px !important;}
+    .form-row{grid-template-columns:1fr !important;}
+    table{min-width:420px;}
   }
 
-  /* iPad portrait (768–1024px) */
+  /* iPad portrait */
   @media(min-width:769px) and (max-width:1024px){
     .sidebar{width:180px;}
     .main{margin-left:180px;padding:20px;}
-    .stat-grid{grid-template-columns:repeat(2,1fr);}
-    .chart-grid{grid-template-columns:1fr;}
-    .chart-card.wide{grid-column:1;}
+    .stat-grid{grid-template-columns:repeat(2,1fr) !important;}
+    .chart-grid{grid-template-columns:1fr !important;}
+    .chart-card.wide{grid-column:1 !important;}
   }
 </style>
 </head>
@@ -322,9 +336,9 @@
           <div class="data-card-title">All Accounts</div>
           <button class="btn" onclick="openModal('account')">+ Add Account</button>
         </div>
-        <table><thead><tr><th>Account</th><th>Bank</th><th>Type</th><th>Balance</th><th>Updated</th><th></th></tr></thead>
+        <div class="data-card-inner"><table><thead><tr><th>Account</th><th>Bank</th><th>Type</th><th>Balance</th><th>Updated</th><th></th></tr></thead>
         <tbody id="accounts-table"></tbody></table>
-        <div id="accounts-empty" class="empty-state" style="display:none"><div class="empty-icon">🏦</div>No accounts yet.</div>
+        </div><div id="accounts-empty" class="empty-state" style="display:none"><div class="empty-icon">🏦</div>No accounts yet.</div>
       </div>
     </div>
 
@@ -351,9 +365,9 @@
             <button class="btn" onclick="openModal('stock')">+ Add Holding</button>
           </div>
         </div>
-        <table><thead><tr><th>Ticker</th><th>Name</th><th>Bought</th><th>Shares</th><th>Avg Cost</th><th>Price (USD)</th><th>Value</th><th>Gain/Loss</th><th></th></tr></thead>
+        <div class="data-card-inner"><table><thead><tr><th>Ticker</th><th>Name</th><th>Bought</th><th>Shares</th><th>Avg Cost</th><th>Price (USD)</th><th>Value</th><th>Gain/Loss</th><th></th></tr></thead>
         <tbody id="stocks-table"></tbody></table>
-        <div id="stocks-empty" class="empty-state" style="display:none"><div class="empty-icon">📈</div>No holdings yet.</div>
+        </div><div id="stocks-empty" class="empty-state" style="display:none"><div class="empty-icon">📈</div>No holdings yet.</div>
       </div>
     </div>
 
@@ -380,9 +394,9 @@
             <button class="btn" onclick="openModal('crypto')">+ Add Crypto</button>
           </div>
         </div>
-        <table><thead><tr><th>Asset</th><th>Symbol</th><th>Bought</th><th>USD Invested</th><th>Current Value (USD)</th><th>Value</th><th>Gain/Loss</th><th></th></tr></thead>
+        <div class="data-card-inner"><table><thead><tr><th>Asset</th><th>Symbol</th><th>Bought</th><th>USD Invested</th><th>Current Value (USD)</th><th>Value</th><th>Gain/Loss</th><th></th></tr></thead>
         <tbody id="crypto-table"></tbody></table>
-        <div id="crypto-empty" class="empty-state" style="display:none"><div class="empty-icon">₿</div>No crypto holdings yet.</div>
+        </div><div id="crypto-empty" class="empty-state" style="display:none"><div class="empty-icon">₿</div>No crypto holdings yet.</div>
       </div>
     </div>
 
@@ -403,9 +417,9 @@
           <div class="data-card-title">Transactions</div>
           <button class="btn" onclick="openModal('transaction')">+ Add Transaction</button>
         </div>
-        <table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th>Amount</th><th></th></tr></thead>
+        <div class="data-card-inner"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th>Amount</th><th></th></tr></thead>
         <tbody id="cashflow-table"></tbody></table>
-        <div id="cashflow-empty" class="empty-state" style="display:none"><div class="empty-icon">💸</div>No transactions yet.</div>
+        </div><div id="cashflow-empty" class="empty-state" style="display:none"><div class="empty-icon">💸</div>No transactions yet.</div>
       </div>
     </div>
 
@@ -758,7 +772,8 @@ function buildStocksPie(){
   const data=db.stocks.map(h=>(+h.shares||0)*(+h.currentPrice||0)*fxRate);
   const colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!labels.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
-  charts['stocks-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
+  const isMobile=window.innerWidth<=768;
+  charts['stocks-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:12},padding:isMobile?6:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
 }
 
 function buildStocksGainLoss(){
@@ -793,7 +808,8 @@ function buildCryptoPie(){
   const data=db.crypto.map(h=>(+h.currentValueUSD||0)*fxRate);
   const colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!labels.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
-  charts['crypto-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
+  const isMobile=window.innerWidth<=768;
+  charts['crypto-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:12},padding:isMobile?6:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
 }
 
 function buildCryptoGainLoss(){
@@ -827,7 +843,8 @@ function buildExpensesChart(){
   const by={};filtered.forEach(t=>{by[t.category]=(by[t.category]||0)+(+t.amount||0);});
   const labels=Object.keys(by),data=Object.values(by),colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
-  charts['expenses']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:11},padding:8}}},cutout:'60%'}});
+  const isMobile=window.innerWidth<=768;
+  charts['expenses']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:11},padding:isMobile?6:8}}},cutout:'60%'}});
 }
 
 function buildIncVsExpChart(){
@@ -996,9 +1013,11 @@ function refreshStocks(){
       </div></td>
       <td><strong>${fmt(valUSD*fxRate)}</strong></td>
       <td class="${g>=0?'positive':'negative'}">${fmt(g)}<br><small>${fmtPct(p)}</small></td>
-      <td style="display:flex;gap:6px;padding:11px 20px;">
-        <button class="btn secondary" style="padding:4px 10px;font-size:11px;white-space:nowrap;" onclick="openModal('add-lot','${h.id}')">+ Buy More</button>
-        <button class="btn danger" style="padding:4px 10px;font-size:11px;background:transparent;color:var(--danger);border:1px solid var(--border);" onclick="deleteItem('stocks','${h.id}')">✕</button>
+      <td style="padding:11px 20px;white-space:nowrap;">
+        <div style="display:flex;gap:6px;">
+          <button class="btn secondary" style="padding:4px 10px;font-size:11px;white-space:nowrap;" onclick="openModal('add-lot','${h.id}')">+ Buy More</button>
+          <button class="btn danger" style="padding:4px 10px;font-size:11px;background:transparent;color:var(--danger);border:1px solid var(--border);" onclick="deleteItem('stocks','${h.id}')">✕</button>
+        </div>
       </td>
     </tr>${lotsRows}`;
   }).join('');
@@ -1791,6 +1810,12 @@ if (db.settings.currency !== 'USD') {
     refreshAll();
   });
 }
+// Rebuild charts on orientation/resize so legend positions update (mobile ↔ desktop)
+let _resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => refreshAll(), 250);
+});
 </script>
 </body>
 </html>
