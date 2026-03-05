@@ -181,8 +181,43 @@
   .confirm-icon{font-size:32px;margin-bottom:12px;}
   .confirm-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:8px;}
   .confirm-msg{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:24px;}
-  /* ── PULL TO REFRESH ────────────────────────────────────────────────────── */
-  .ptr-indicator{
+  /* ── DASHBOARD TAB SWITCHER ─────────────────────────────────────────────── */
+  .dash-tabs{display:flex;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;margin-bottom:24px;}
+  .dash-tab{padding:7px 20px;border-radius:7px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:all 0.18s;letter-spacing:0.3px;}
+  .dash-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.15);}
+  .dash-view{display:none;animation:fadeIn 0.2s ease;}
+  .dash-view.active{display:block;}
+  /* ── INSIGHT CARDS ──────────────────────────────────────────────────────── */
+  .insights-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .insight-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+  .insight-card:hover{border-color:var(--accent);}
+  .insight-card::after{content:'';position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle at top right,var(--card-glow),transparent 70%);}
+  .insight-card.wide{grid-column:span 2;}
+  .insight-card.full{grid-column:1/-1;}
+  .insight-emoji{font-size:24px;margin-bottom:10px;line-height:1;}
+  .insight-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .insight-value{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;margin-bottom:4px;line-height:1.2;}
+  .insight-sub{font-size:12px;color:var(--muted);line-height:1.5;}
+  .insight-sub strong{color:var(--text);}
+  .insight-bar-wrap{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+  .insight-bar-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+  .insight-bar-label{width:100px;flex-shrink:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .insight-bar-track{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+  .insight-bar-fill{height:100%;border-radius:3px;transition:width 0.4s ease;}
+  .insight-bar-amt{width:70px;flex-shrink:0;text-align:right;color:var(--text);}
+  .insight-empty{grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--muted);font-size:13px;}
+  .insight-empty-icon{font-size:36px;margin-bottom:12px;}
+  @media(max-width:768px){
+    .insights-grid{grid-template-columns:1fr;}
+    .insight-card.wide,.insight-card.full{grid-column:1;}
+    .dash-tabs{width:100%;}
+    .dash-tab{flex:1;text-align:center;padding:7px 10px;}
+  }
+  .new-cat-wrap{display:none;margin-top:8px;gap:6px;align-items:center;}
+  .new-cat-wrap.visible{display:flex;}
+  .new-cat-input{flex:1;background:var(--surface2);border:1px solid var(--accent);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;padding:8px 12px;outline:none;}
+  .new-cat-add{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:8px 12px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;white-space:nowrap;}
+  /* ── PULL TO REFRESH */
     display:none;position:fixed;top:0;left:0;right:0;z-index:49;
     align-items:center;justify-content:center;
     background:var(--surface);border-bottom:1px solid var(--border);
@@ -217,7 +252,8 @@
     .sidebar{display:none;}
     .mobile-topbar{display:flex;}
     .bottom-nav{display:flex;}
-    .main{margin-left:0 !important;padding:12px;padding-top:calc(68px + env(safe-area-inset-top));padding-bottom:calc(76px + env(safe-area-inset-bottom));min-width:0;}
+    .main{margin-left:0 !important;padding:12px;padding-top:calc(68px + env(safe-area-inset-top));padding-bottom:calc(76px + env(safe-area-inset-bottom));min-width:0;width:100%;}
+    .app{display:block;}
     /* Stat cards: 2 columns */
     .stat-grid{grid-template-columns:1fr 1fr !important;gap:10px;margin-bottom:14px;}
     .stat-card{padding:12px;}
@@ -294,7 +330,7 @@
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
     <button class="bottom-nav-item active" id="bn-dashboard" onclick="navigate('dashboard')">
-      <span class="bottom-nav-icon">◈</span>Home
+      <span class="bottom-nav-icon" style="font-size:22px">⌂</span>Home
     </button>
     <button class="bottom-nav-item" id="bn-accounts" onclick="navigate('accounts')">
       <span class="bottom-nav-icon">◉</span>Accounts
@@ -306,7 +342,7 @@
       <span class="bottom-nav-icon">◇</span>Crypto
     </button>
     <button class="bottom-nav-item" id="bn-cashflow" onclick="navigate('cashflow')">
-      <span class="bottom-nav-icon">◫</span>Cash
+      <span class="bottom-nav-icon">$</span>Cash
     </button>
     <button class="bottom-nav-item" id="bn-settings" onclick="navigate('settings')">
       <span class="bottom-nav-icon">⚙</span>Settings
@@ -350,12 +386,24 @@
         <div><div class="page-title">Dashboard</div><div class="page-sub" id="dashboard-date"></div></div>
         <div class="tf-bar" id="dash-tf"></div>
       </div>
-      <div id="fx-bar-dash" class="fx-bar" style="display:none"></div>
-      <div class="stat-grid" id="dash-stats"></div>
-      <div class="chart-grid">
-        <div class="chart-card"><div class="chart-title">Portfolio Allocation</div><div class="chart-wrap"><canvas id="chart-allocation"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">Asset Distribution</div><div class="chart-wrap"><canvas id="chart-assets"></canvas></div></div>
-        <div class="chart-card wide"><div class="chart-title">Net Worth Over Time</div><div class="chart-wrap tall"><canvas id="chart-networth"></canvas></div></div>
+      <!-- Tab switcher -->
+      <div class="dash-tabs">
+        <button class="dash-tab active" id="dash-tab-overview" onclick="switchDashTab('overview')">Overview</button>
+        <button class="dash-tab" id="dash-tab-insights" onclick="switchDashTab('insights')">✦ Insights</button>
+      </div>
+      <!-- Overview view -->
+      <div class="dash-view active" id="dash-view-overview">
+        <div id="fx-bar-dash" class="fx-bar" style="display:none"></div>
+        <div class="stat-grid" id="dash-stats"></div>
+        <div class="chart-grid">
+          <div class="chart-card"><div class="chart-title">Portfolio Allocation</div><div class="chart-wrap"><canvas id="chart-allocation"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Asset Distribution</div><div class="chart-wrap"><canvas id="chart-assets"></canvas></div></div>
+          <div class="chart-card wide"><div class="chart-title">Net Worth Over Time</div><div class="chart-wrap tall"><canvas id="chart-networth"></canvas></div></div>
+        </div>
+      </div>
+      <!-- Insights view -->
+      <div class="dash-view" id="dash-view-insights">
+        <div class="insights-grid" id="insights-grid"></div>
       </div>
     </div>
 
@@ -490,6 +538,14 @@
           </div>
         </div>
         <div class="info-box">💡 Stocks and crypto prices are stored in USD and converted using the rate above. Bank accounts and transactions are assumed to be in your display currency already.</div>
+        <div class="settings-row">
+          <div><div class="settings-row-label">Currency Label</div><div class="settings-row-sub">Show currency code after amounts</div></div>
+          <div class="currency-pill">
+            <button class="currency-opt" id="clabel-off" onclick="setCurrencyLabel('off')">Off</button>
+            <button class="currency-opt" id="clabel-non-usd" onclick="setCurrencyLabel('non-usd')">Non-USD</button>
+            <button class="currency-opt" id="clabel-always" onclick="setCurrencyLabel('always')">Always</button>
+          </div>
+        </div>
       </div>
       <div class="settings-section">
         <div class="settings-section-title">Google Drive Sync</div>
@@ -584,12 +640,22 @@ const CRYPTO_LIST = [
 
 // ─── DB ───────────────────────────────────────────────────────────────────────
 const DB_KEY = 'vault_data_v3';
-let db = {accounts:[],stocks:[],crypto:[],transactions:[],settings:{currency:'COP',fxRate:4200}};
+const DEFAULT_CATEGORIES = {
+  income: ['Salary','Freelance','Interest','Dividends','Rental Income','Gift','Refund','Other Income'],
+  expense: ['Housing','Food','Transport','Utilities','Healthcare','Education','Entertainment','Shopping','Travel','Subscriptions','Insurance','Personal Care','Debt Payment','Other Expense']
+};
+let db = {accounts:[],stocks:[],crypto:[],transactions:[],settings:{currency:'COP',fxRate:4200,categories:{income:[...DEFAULT_CATEGORIES.income],expense:[...DEFAULT_CATEGORIES.expense]},currencyLabel:'off'}};
 
 function save(){localStorage.setItem(DB_KEY,JSON.stringify(db));refreshAll();}
 function load(){
   const raw=localStorage.getItem(DB_KEY);
-  if(raw){try{const p=JSON.parse(raw);db={...db,...p};if(!db.settings)db.settings={currency:'COP',fxRate:4200};}catch(e){}}
+  if(raw){try{const p=JSON.parse(raw);db={...db,...p};if(!db.settings)db.settings={currency:'COP',fxRate:4200};
+    // Ensure categories exist for older saved data
+    if(!db.settings.categories)db.settings.categories={income:[...DEFAULT_CATEGORIES.income],expense:[...DEFAULT_CATEGORIES.expense]};
+    if(!db.settings.categories.income)db.settings.categories.income=[...DEFAULT_CATEGORIES.income];
+    if(!db.settings.categories.expense)db.settings.categories.expense=[...DEFAULT_CATEGORIES.expense];
+    if(!db.settings.currencyLabel)db.settings.currencyLabel='off';
+  }catch(e){}}
 }
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 
@@ -629,16 +695,24 @@ function getFxRate(){return db.settings.fxRate||1;}
 function fmt(n, usd=false){
   let val=+n||0;
   if(usd && db.settings.currency!=='USD') val=val*getFxRate();
-  if(db.settings.currency==='COP') return getCurrencySymbol()+Math.round(val).toLocaleString('es-CO');
-  return getCurrencySymbol()+val.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const label=db.settings.currencyLabel;
+  const code=db.settings.currency;
+  const suffix=(label==='always'||(label==='non-usd'&&code!=='USD'))?(' '+code):'';
+  let formatted;
+  if(code==='COP') formatted=getCurrencySymbol()+Math.round(val).toLocaleString('es-CO');
+  else formatted=getCurrencySymbol()+val.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return formatted+suffix;
 }
 function fmtUSD(n){return '$'+(+n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtPct(n){return(n>=0?'+':'')+Number(n).toFixed(2)+'%';}
 
 function setCurrency(c){db.settings.currency=c;save();updateSettingsUI();}
+function setCurrencyLabel(v){db.settings.currencyLabel=v;save();updateSettingsUI();}
 function updateSettingsUI(){
-  document.querySelectorAll('.currency-opt').forEach(el=>el.classList.remove('active'));
-  const el=document.getElementById('cur-'+db.settings.currency);if(el)el.classList.add('active');
+  // Currency pill
+  ['COP','USD','EUR'].forEach(c=>{const el=document.getElementById('cur-'+c);if(el)el.classList.toggle('active',db.settings.currency===c);});
+  // Currency label pill
+  ['off','non-usd','always'].forEach(v=>{const el=document.getElementById('clabel-'+v);if(el)el.classList.toggle('active',(db.settings.currencyLabel||'off')===v);});
   const lbl=document.getElementById('fx-target-label');if(lbl)lbl.textContent=db.settings.currency;
   const disp=document.getElementById('fx-rate-display');
   if(disp)disp.textContent=db.settings.currency==='USD'?'N/A':db.settings.fxRate.toLocaleString();
@@ -944,6 +1018,200 @@ function refreshDashboard(){
     <div class="stat-card"><div class="stat-label">Savings Rate</div><div class="stat-value">${savingsRate}%</div><div class="stat-change">${fmt(totalIncome)} income</div></div>
   `;
   buildAllocationChart();buildAssetsChart();buildNetWorthChart();
+  // Re-render insights if that tab is active
+  if(document.getElementById('dash-view-insights')?.classList.contains('active')) buildInsights();
+}
+
+// ─── DASHBOARD TAB SWITCHER + SWIPE ──────────────────────────────────────────
+let _dashTab = 'overview';
+
+function switchDashTab(tab){
+  _dashTab = tab;
+  document.querySelectorAll('.dash-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.dash-view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('dash-tab-'+tab).classList.add('active');
+  document.getElementById('dash-view-'+tab).classList.add('active');
+  if(tab==='insights') buildInsights();
+}
+
+// Swipe left/right on dashboard to switch tabs (mobile)
+(function(){
+  let sx=0,sy=0;
+  const el=()=>document.getElementById('page-dashboard');
+  document.addEventListener('touchstart',e=>{
+    if(!el()?.classList.contains('active'))return;
+    sx=e.touches[0].clientX;sy=e.touches[0].clientY;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!el()?.classList.contains('active'))return;
+    const dx=e.changedTouches[0].clientX-sx;
+    const dy=e.changedTouches[0].clientY-sy;
+    if(Math.abs(dx)<40||Math.abs(dx)<Math.abs(dy)*1.5)return; // not a horizontal swipe
+    if(dx<0&&_dashTab==='overview') switchDashTab('insights');
+    else if(dx>0&&_dashTab==='insights') switchDashTab('overview');
+  },{passive:true});
+})();
+
+// ─── INSIGHTS ────────────────────────────────────────────────────────────────
+function buildInsights(){
+  const grid=document.getElementById('insights-grid');
+  if(!grid)return;
+  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+  const code=getCurrencyCode();
+  const cards=[];
+  const hasTransactions=db.transactions.length>0;
+  const hasAccounts=db.accounts.length>0;
+  const hasInvestments=db.stocks.length>0||db.crypto.length>0;
+
+  if(!hasTransactions&&!hasAccounts&&!hasInvestments){
+    grid.innerHTML=`<div class="insight-empty"><div class="insight-empty-icon">✦</div>Add some data first — accounts, transactions, or investments — and insights will appear here.</div>`;
+    return;
+  }
+
+  // ── SAVINGS RATE ──────────────────────────────────────────────────────────
+  if(hasTransactions){
+    const now=new Date();
+    const m30=new Date(now.getFullYear(),now.getMonth()-1,now.getDate());
+    const recent=db.transactions.filter(t=>new Date(t.date)>=m30);
+    const inc=recent.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
+    const exp=recent.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+    const rate=inc>0?((inc-exp)/inc*100):null;
+    const rateColor=rate===null?'var(--muted)':rate>=20?'var(--green)':rate>=0?'var(--accent4)':'var(--danger)';
+    const rateLabel=rate===null?'No income logged':rate>=30?'Excellent saving 🎉':rate>=20?'Healthy saving':rate>=0?'Room to improve':'Spending more than earning';
+    cards.push(`<div class="insight-card">
+      <div class="insight-emoji">💰</div>
+      <div class="insight-label">Savings Rate (30 days)</div>
+      <div class="insight-value" style="color:${rateColor}">${rate!==null?rate.toFixed(1)+'%':'—'}</div>
+      <div class="insight-sub">${rateLabel}</div>
+    </div>`);
+
+    // ── TOP EXPENSE CATEGORIES ───────────────────────────────────────────────
+    const allExp=db.transactions.filter(t=>t.type==='expense'&&t.category);
+    if(allExp.length){
+      const byCat={};
+      allExp.forEach(t=>{byCat[t.category]=(byCat[t.category]||0)+(+t.amount||0);});
+      const sorted=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      const max=sorted[0][1];
+      const bars=sorted.map(([cat,amt])=>`
+        <div class="insight-bar-row">
+          <div class="insight-bar-label">${cat}</div>
+          <div class="insight-bar-track"><div class="insight-bar-fill" style="width:${(amt/max*100).toFixed(1)}%;background:var(--accent2)"></div></div>
+          <div class="insight-bar-amt">${fmt(amt*fxRate)}</div>
+        </div>`).join('');
+      cards.push(`<div class="insight-card wide">
+        <div class="insight-emoji">📊</div>
+        <div class="insight-label">Top Expense Categories (All Time)</div>
+        <div class="insight-bar-wrap">${bars}</div>
+      </div>`);
+    }
+
+    // ── MONTHLY BURN RATE ────────────────────────────────────────────────────
+    const monthMap={};
+    db.transactions.filter(t=>t.type==='expense').forEach(t=>{
+      const k=t.date.slice(0,7);
+      monthMap[k]=(monthMap[k]||0)+(+t.amount||0);
+    });
+    const monthVals=Object.values(monthMap);
+    if(monthVals.length){
+      const avg=monthVals.reduce((s,v)=>s+v,0)/monthVals.length;
+      const thisMonth=new Date().toISOString().slice(0,7);
+      const thisMonthExp=monthMap[thisMonth]||0;
+      const diff=thisMonthExp-avg;
+      const diffLabel=Math.abs(diff)<1?'On track with average':diff>0?`▲ ${fmt(diff*fxRate)} above average`:` ▼ ${fmt(Math.abs(diff)*fxRate)} below average`;
+      cards.push(`<div class="insight-card">
+        <div class="insight-emoji">🔥</div>
+        <div class="insight-label">Avg Monthly Burn</div>
+        <div class="insight-value">${fmt(avg*fxRate)}</div>
+        <div class="insight-sub">This month: <strong>${fmt(thisMonthExp*fxRate)}</strong><br>${diffLabel}</div>
+      </div>`);
+    }
+
+    // ── EMERGENCY FUND ───────────────────────────────────────────────────────
+    if(hasAccounts&&monthVals.length){
+      const cashTotal=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+      const avgBurn=monthVals.reduce((s,v)=>s+v,0)/monthVals.length;
+      const months=avgBurn>0?(cashTotal/avgBurn):null;
+      const color=months===null?'var(--muted)':months>=6?'var(--green)':months>=3?'var(--accent4)':'var(--danger)';
+      const label=months===null?'No expense data':months>=6?'Well covered ✓':months>=3?'Adequate — aim for 6':months>=1?'Below recommended':'Critical — less than 1 month';
+      cards.push(`<div class="insight-card">
+        <div class="insight-emoji">🛡️</div>
+        <div class="insight-label">Emergency Fund</div>
+        <div class="insight-value" style="color:${color}">${months!==null?months.toFixed(1)+' mo':'—'}</div>
+        <div class="insight-sub">${label}<br><span style="font-size:11px">Based on avg monthly expenses</span></div>
+      </div>`);
+    }
+
+    // ── BIGGEST SINGLE TRANSACTION ───────────────────────────────────────────
+    const biggestExp=db.transactions.filter(t=>t.type==='expense').sort((a,b)=>b.amount-a.amount)[0];
+    const biggestInc=db.transactions.filter(t=>t.type==='income').sort((a,b)=>b.amount-a.amount)[0];
+    if(biggestExp||biggestInc){
+      cards.push(`<div class="insight-card">
+        <div class="insight-emoji">⚡</div>
+        <div class="insight-label">Largest Transactions</div>
+        ${biggestExp?`<div class="insight-sub" style="margin-bottom:6px">Biggest expense: <strong class="negative">${fmt(biggestExp.amount*fxRate)}</strong><br><span style="font-size:11px;color:var(--muted)">${biggestExp.description} · ${biggestExp.date}</span></div>`:''}
+        ${biggestInc?`<div class="insight-sub">Biggest income: <strong class="positive">${fmt(biggestInc.amount*fxRate)}</strong><br><span style="font-size:11px;color:var(--muted)">${biggestInc.description} · ${biggestInc.date}</span></div>`:''}
+      </div>`);
+    }
+  }
+
+  // ── BEST & WORST INVESTMENT ───────────────────────────────────────────────
+  if(hasInvestments){
+    const investments=[
+      ...db.stocks.map(h=>{
+        const val=(+h.shares||0)*(+h.currentPrice||0);
+        const cost=(+h.shares||0)*(+h.avgCost||0);
+        const pct=cost?((val-cost)/cost*100):0;
+        return{name:h.ticker,pct,gain:(val-cost)*fxRate};
+      }),
+      ...db.crypto.map(h=>{
+        const val=+h.currentValueUSD||0;const cost=+h.investedUSD||0;
+        const pct=cost?((val-cost)/cost*100):0;
+        return{name:h.symbol,pct,gain:(val-cost)*fxRate};
+      })
+    ].filter(i=>i.gain!==0);
+    if(investments.length>=1){
+      const best=investments.reduce((a,b)=>a.pct>b.pct?a:b);
+      const worst=investments.reduce((a,b)=>a.pct<b.pct?a:b);
+      cards.push(`<div class="insight-card">
+        <div class="insight-emoji">🏆</div>
+        <div class="insight-label">Best & Worst Performer</div>
+        <div class="insight-sub" style="margin-bottom:8px">Best: <strong style="color:var(--green)">${best.name} ${best.pct>0?'+':''}${best.pct.toFixed(1)}%</strong> (${fmt(best.gain)})</div>
+        <div class="insight-sub">Worst: <strong style="color:var(--danger)">${worst.name} ${worst.pct>0?'+':''}${worst.pct.toFixed(1)}%</strong> (${fmt(worst.gain)})</div>
+      </div>`);
+    }
+
+    // ── UNREALIZED GAINS ─────────────────────────────────────────────────────
+    const totalGain=db.stocks.reduce((s,h)=>s+(((+h.shares||0)*(+h.currentPrice||0))-((+h.shares||0)*(+h.avgCost||0))),0)*fxRate
+      +db.crypto.reduce((s,h)=>s+((+h.currentValueUSD||0)-(+h.investedUSD||0)),0)*fxRate;
+    const gainColor=totalGain>0?'var(--green)':totalGain<0?'var(--danger)':'var(--muted)';
+    cards.push(`<div class="insight-card">
+      <div class="insight-emoji">📈</div>
+      <div class="insight-label">Total Unrealized Gain/Loss</div>
+      <div class="insight-value" style="color:${gainColor}">${totalGain>=0?'+':''}${fmt(totalGain)}</div>
+      <div class="insight-sub">Sitting in your portfolio, not yet sold</div>
+    </div>`);
+  }
+
+  // ── INTEREST EARNED ───────────────────────────────────────────────────────
+  if(hasTransactions){
+    const interestTotal=db.transactions.filter(t=>t.category==='Interest'&&t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
+    if(interestTotal>0){
+      const thisYear=new Date().getFullYear().toString();
+      const yearInterest=db.transactions.filter(t=>t.category==='Interest'&&t.type==='income'&&t.date.startsWith(thisYear)).reduce((s,t)=>s+(+t.amount||0),0);
+      cards.push(`<div class="insight-card">
+        <div class="insight-emoji">🏦</div>
+        <div class="insight-label">Interest Earned</div>
+        <div class="insight-value positive">${fmt(interestTotal*fxRate)}</div>
+        <div class="insight-sub">All time · <strong>${fmt(yearInterest*fxRate)}</strong> this year</div>
+      </div>`);
+    }
+  }
+
+  if(!cards.length){
+    grid.innerHTML=`<div class="insight-empty"><div class="insight-empty-icon">✦</div>Not enough data yet for insights. Add transactions and investments to get started.</div>`;
+    return;
+  }
+  grid.innerHTML=cards.join('');
 }
 
 function refreshAccounts(){
@@ -1346,14 +1614,28 @@ function openModal(type, extraId=null){
     const accountOptions = db.accounts.length
       ? db.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('')
       : '<option value="">— No accounts added yet —</option>';
+    const buildCatOptions = type => {
+      const cats = db.settings.categories[type]||[];
+      return cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+    };
     html=`<div class="modal-title">Add Transaction</div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="f-type"><option value="income">Income</option><option value="expense">Expense</option></select></div>
+        <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="f-type" onchange="onTransactionTypeChange()"><option value="income">Income</option><option value="expense">Expense</option></select></div>
         <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="f-date" type="date" value="${today}"></div>
       </div>
       <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="f-desc" placeholder="e.g. Monthly salary"></div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Category</label><input class="form-input" id="f-cat" placeholder="e.g. Salary, Arriendo..."></div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="f-cat" onchange="onCatSelectChange()">
+            ${buildCatOptions('income')}
+            <option value="__new__">+ New category…</option>
+          </select>
+          <div class="new-cat-wrap" id="new-cat-wrap">
+            <input class="new-cat-input" id="new-cat-input" placeholder="Category name" onkeydown="if(event.key==='Enter')addNewCategory()">
+            <button class="new-cat-add" onclick="addNewCategory()">Add</button>
+          </div>
+        </div>
         <div class="form-group"><label class="form-label">Amount (${code})</label><input class="form-input" id="f-amount" type="number" step="any" placeholder="0"></div>
       </div>
       <div class="form-group"><label class="form-label">Bank Account</label><select class="form-select" id="f-account"><option value="">— No account —</option>${accountOptions}</select></div>
@@ -1642,21 +1924,71 @@ function saveCrypto(){
   save();closeModal();
 }
 
+function onTransactionTypeChange(){
+  const type=document.getElementById('f-type').value;
+  const cats=db.settings.categories[type]||[];
+  const sel=document.getElementById('f-cat');
+  sel.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('')+'<option value="__new__">+ New category…</option>';
+  document.getElementById('new-cat-wrap').classList.remove('visible');
+}
+
+function onCatSelectChange(){
+  const val=document.getElementById('f-cat').value;
+  const wrap=document.getElementById('new-cat-wrap');
+  if(val==='__new__'){wrap.classList.add('visible');document.getElementById('new-cat-input').focus();}
+  else wrap.classList.remove('visible');
+}
+
+function addNewCategory(){
+  const name=document.getElementById('new-cat-input').value.trim();
+  if(!name)return;
+  const type=document.getElementById('f-type').value;
+  const cats=db.settings.categories[type];
+  if(cats.includes(name)){
+    // already exists — just select it
+    document.getElementById('f-cat').value=name;
+    document.getElementById('new-cat-wrap').classList.remove('visible');
+    return;
+  }
+  cats.push(name);
+  // Save immediately so it persists without requiring a full transaction save
+  localStorage.setItem(DB_KEY,JSON.stringify(db));
+  // Rebuild dropdown and select the new category
+  const sel=document.getElementById('f-cat');
+  sel.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('')+'<option value="__new__">+ New category…</option>';
+  sel.value=name;
+  document.getElementById('new-cat-wrap').classList.remove('visible');
+}
+
 function saveTransaction(){
   const type=document.getElementById('f-type').value;
   const date=document.getElementById('f-date').value;
   const description=document.getElementById('f-desc').value.trim();
-  const category=document.getElementById('f-cat').value.trim();
+  const catSel=document.getElementById('f-cat').value;
+  const category=catSel==='__new__'?document.getElementById('new-cat-input').value.trim():catSel;
   const amount=document.getElementById('f-amount').value;
   const accountId=document.getElementById('f-account').value;
-  if(!description||!category||!amount||!date)return alert('Please fill in all fields.');
-  const t={id:uid(),type,date,description,category,amount:+amount,accountId:accountId||null};
+  if(!category||category==='__new__'||!amount||!date)return alert('Please fill in all fields including a valid category.');
+  if(!accountId){
+    showConfirm({
+      icon:'🏦',
+      title:'No bank account selected',
+      msg:'This transaction won\'t be linked to any account, so your balances won\'t update automatically. Are you sure you want to continue?',
+      confirmLabel:'Save anyway',
+      onConfirm:()=>_commitTransaction({type,date,description,category,amount:+amount,accountId:null})
+    });
+    return;
+  }
+  _commitTransaction({type,date,description,category,amount:+amount,accountId});
+}
+
+function _commitTransaction({type,date,description,category,amount,accountId}){
+  const t={id:uid(),type,date,description,category,amount,accountId:accountId||null};
   db.transactions.push(t);
-  // Apply to linked account balance
   if(accountId){
     const acc=db.accounts.find(a=>a.id===accountId);
     if(acc){
-      acc.balance=Math.round(((+acc.balance||0)+(type==='income'?+amount:-+amount))*100)/100;
+      acc.balance=Math.round(((+acc.balance||0)+(type==='income'?amount:-amount))*100)/100;
       acc.updated=new Date().toLocaleDateString();
     }
   }
