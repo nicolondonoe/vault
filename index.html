@@ -173,7 +173,22 @@
   .confirm-icon{font-size:32px;margin-bottom:12px;}
   .confirm-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;margin-bottom:8px;}
   .confirm-msg{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:24px;}
-  /* ── MOBILE TOP BAR ─────────────────────────────────────────────────────── */
+  /* ── PULL TO REFRESH ────────────────────────────────────────────────────── */
+  .ptr-indicator{
+    display:none;position:fixed;top:0;left:0;right:0;z-index:49;
+    align-items:center;justify-content:center;
+    background:var(--surface);border-bottom:1px solid var(--border);
+    height:0;overflow:hidden;transition:none;
+    font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;
+    gap:8px;
+  }
+  .ptr-spinner{
+    width:16px;height:16px;border:2px solid var(--border);
+    border-top-color:var(--accent);border-radius:50%;
+    transition:transform 0.1s;flex-shrink:0;
+  }
+  .ptr-spinner.spinning{animation:ptr-spin 0.7s linear infinite;}
+  @keyframes ptr-spin{to{transform:rotate(360deg);}}
   .mobile-topbar{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:var(--surface);border-bottom:1px solid var(--border);z-index:50;align-items:center;justify-content:space-between;padding:0 16px;padding-top:env(safe-area-inset-top);height:calc(56px + env(safe-area-inset-top));}
   .mobile-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--text);}
   .mobile-logo span{color:var(--accent);}
@@ -314,9 +329,14 @@
     </div>
   </aside>
 
+  <!-- PULL TO REFRESH -->
+  <div class="ptr-indicator" id="ptr-indicator">
+    <div class="ptr-spinner" id="ptr-spinner"></div>
+    <span id="ptr-label">Pull to sync</span>
+  </div>
+
   <main class="main">
 
-    <!-- DASHBOARD -->
     <div id="page-dashboard" class="page active">
       <div class="page-header">
         <div><div class="page-title">Dashboard</div><div class="page-sub" id="dashboard-date"></div></div>
@@ -1810,6 +1830,126 @@ function toggleTheme() {
   localStorage.setItem(DB_KEY, JSON.stringify(db));
   applyTheme(newMode);
 }
+
+// ─── PULL TO REFRESH ─────────────────────────────────────────────────────────
+(function(){
+  const THRESHOLD = 72;   // px to pull before releasing triggers sync
+  const MAX_PULL  = 100;  // max visual stretch in px
+  let startY = 0, currentY = 0, pulling = false, triggered = false, refreshing = false;
+
+  const indicator = document.getElementById('ptr-indicator');
+  const spinner   = document.getElementById('ptr-spinner');
+  const label     = document.getElementById('ptr-label');
+  const main      = document.querySelector('.main');
+
+  function isMobile(){ return window.innerWidth <= 768; }
+
+  function setHeight(h){
+    indicator.style.height = h + 'px';
+    indicator.style.display = h > 0 ? 'flex' : 'none';
+    // Push main down so content isn't hidden behind indicator
+    main.style.marginTop = h > 0 ? h + 'px' : '';
+  }
+
+  function updateVisual(pullPx){
+    // Ease the pull so it feels springy — same trick iOS uses
+    const eased = Math.min(MAX_PULL, pullPx * (MAX_PULL / (MAX_PULL + pullPx)) * 2);
+    setHeight(eased);
+    const ratio = eased / THRESHOLD;
+    // Rotate spinner based on pull progress
+    spinner.style.transform = `rotate(${ratio * 360}deg)`;
+    spinner.classList.remove('spinning');
+    if (eased >= THRESHOLD) {
+      label.textContent = 'Release to sync';
+      indicator.style.borderColor = 'var(--accent)';
+      spinner.style.borderTopColor = 'var(--accent)';
+    } else {
+      label.textContent = 'Pull to sync';
+      indicator.style.borderColor = 'var(--border)';
+    }
+  }
+
+  async function doRefresh(){
+    if (refreshing) return;
+    refreshing = true;
+    spinner.classList.add('spinning');
+    spinner.style.transform = '';
+    label.textContent = 'Syncing…';
+    indicator.style.borderColor = 'var(--accent)';
+
+    try {
+      if (gToken) {
+        await pullFromDrive();
+        label.textContent = '✓ Synced';
+      } else {
+        refreshAll();
+        label.textContent = '✓ Refreshed';
+      }
+    } catch(e) {
+      label.textContent = 'Sync failed';
+    }
+
+    // Hold the success state briefly, then animate away
+    await new Promise(r => setTimeout(r, 900));
+    spinner.classList.remove('spinning');
+    // Animate collapse
+    const start = parseFloat(indicator.style.height) || 0;
+    const t0 = performance.now();
+    const dur = 280;
+    function collapse(now){
+      const p = Math.min(1, (now - t0) / dur);
+      const ease = 1 - Math.pow(1 - p, 3); // ease-out cubic
+      const h = start * (1 - ease);
+      setHeight(h);
+      if (p < 1) requestAnimationFrame(collapse);
+      else { setHeight(0); main.style.marginTop = ''; refreshing = false; }
+    }
+    requestAnimationFrame(collapse);
+  }
+
+  document.addEventListener('touchstart', e => {
+    if (!isMobile()) return;
+    if (main.scrollTop > 0) return; // only trigger when already at top
+    // Only one finger, and page must be scrolled to top
+    if (e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+    pulling = false;
+    triggered = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', e => {
+    if (!isMobile() || refreshing) return;
+    currentY = e.touches[0].clientY;
+    const delta = currentY - startY;
+    if (delta <= 0) { pulling = false; return; }
+    // Only start pulling if we're at the very top of the scroll
+    if (!pulling && main.scrollTop > 2) return;
+    pulling = true;
+    updateVisual(delta);
+  }, { passive: true });
+
+  document.addEventListener('touchend', () => {
+    if (!isMobile() || !pulling || refreshing) { pulling = false; return; }
+    const delta = currentY - startY;
+    if (delta >= THRESHOLD) {
+      doRefresh();
+    } else {
+      // Snap back
+      const start = parseFloat(indicator.style.height) || 0;
+      const t0 = performance.now();
+      const dur = 200;
+      function snapBack(now){
+        const p = Math.min(1, (now - t0) / dur);
+        const ease = 1 - Math.pow(1 - p, 2);
+        setHeight(start * (1 - ease));
+        if (p < 1) requestAnimationFrame(snapBack);
+        else { setHeight(0); main.style.marginTop = ''; }
+      }
+      requestAnimationFrame(snapBack);
+    }
+    pulling = false;
+  }, { passive: true });
+})();
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 load();
