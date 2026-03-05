@@ -23,13 +23,13 @@
     --card-glow:rgba(124,109,250,0.12);
   }
   body.light {
-    --bg:#f4f4f8;--surface:#ffffff;--surface2:#f0f0f6;--border:#e0e0ec;
-    --text:#1a1a2e;--muted:#8888a8;--danger:#e05555;--green:#1a9e6e;
-    --grid-line:rgba(124,109,250,0.04);
-    --table-hover:rgba(0,0,0,0.02);
-    --table-border:rgba(0,0,0,0.04);
-    --modal-bg:rgba(0,0,0,0.4);
-    --card-glow:rgba(124,109,250,0.06);
+    --bg:#e8e6e1;--surface:#f0ede8;--surface2:#e2dfd9;--border:#cdc9c1;
+    --text:#2c2a35;--muted:#7a7870;--danger:#c0392b;--green:#1e7d5a;
+    --grid-line:rgba(100,90,70,0.04);
+    --table-hover:rgba(0,0,0,0.03);
+    --table-border:rgba(0,0,0,0.05);
+    --modal-bg:rgba(0,0,0,0.35);
+    --card-glow:rgba(124,109,250,0.07);
   }
   /* Theme toggle */
   .theme-toggle{background:var(--surface2);border:1px solid var(--border);border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:6px;padding:5px 10px;font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;transition:all 0.15s;margin:0 12px 8px;}
@@ -89,6 +89,8 @@
   .btn.refresh{background:var(--surface2);color:var(--accent3);border:1px solid rgba(109,250,189,0.3);}
   .btn.refresh:hover{background:rgba(109,250,189,0.1);}
   .btn.refresh.loading{opacity:0.6;pointer-events:none;}
+  body.light .btn.refresh{color:#1a7a55;border-color:rgba(26,122,85,0.35);background:rgba(26,122,85,0.07);}
+  body.light .btn.refresh:hover{background:rgba(26,122,85,0.13);}
   /* Table */
   table{width:100%;border-collapse:collapse;}
   th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding:10px 20px;border-bottom:1px solid var(--border);}
@@ -102,6 +104,11 @@
   .badge.cash{background:rgba(109,250,189,0.2);color:var(--accent3);}
   .badge.income{background:rgba(109,250,189,0.2);color:var(--accent3);}
   .badge.expense{background:rgba(250,109,109,0.2);color:var(--danger);}
+  body.light .badge.stock{background:rgba(100,85,220,0.12);color:#4a3db5;}
+  body.light .badge.crypto{background:rgba(200,70,120,0.12);color:#a0254f;}
+  body.light .badge.cash{background:rgba(26,122,85,0.12);color:#1a7a55;}
+  body.light .badge.income{background:rgba(26,122,85,0.12);color:#1a7a55;}
+  body.light .badge.expense{background:rgba(180,50,50,0.12);color:#c0392b;}
   .positive{color:var(--green);}.negative{color:var(--danger);}
   /* Modal */
   .modal-overlay{display:none;position:fixed;inset:0;background:var(--modal-bg);backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center;}
@@ -130,6 +137,7 @@
   .fetch-status{font-size:11px;color:var(--muted);}
   .fetch-status.ok{color:var(--green);}.fetch-status.err{color:var(--danger);}
   .fx-bar{background:rgba(250,204,109,0.08);border:1px solid rgba(250,204,109,0.2);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--accent4);margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+  body.light .fx-bar{background:rgba(140,100,20,0.07);border-color:rgba(140,100,20,0.2);color:#7a5c10;}
   .fx-bar span{color:var(--muted);}
   /* Settings */
   .settings-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;}
@@ -418,7 +426,7 @@
             <button class="btn" onclick="openModal('crypto')">+ Add Crypto</button>
           </div>
         </div>
-        <div class="data-card-inner"><table><thead><tr><th>Asset</th><th>Symbol</th><th>Bought</th><th>USD Invested</th><th>Current Value (USD)</th><th>Value</th><th>Gain/Loss</th><th></th></tr></thead>
+        <div class="data-card-inner"><table><thead><tr><th>Asset</th><th>Symbol</th><th>Bought</th><th>Invested (USD)</th><th>Coins Held</th><th>Price Now</th><th>Current Value</th><th>Gain/Loss</th><th></th></tr></thead>
         <tbody id="crypto-table"></tbody></table>
         </div><div id="crypto-empty" class="empty-state" style="display:none"><div class="empty-icon">₿</div>No crypto holdings yet.</div>
       </div>
@@ -441,7 +449,7 @@
           <div class="data-card-title">Transactions</div>
           <button class="btn" onclick="openModal('transaction')">+ Add Transaction</button>
         </div>
-        <div class="data-card-inner"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th>Amount</th><th></th></tr></thead>
+        <div class="data-card-inner"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th>Amount</th><th>Account</th><th></th></tr></thead>
         <tbody id="cashflow-table"></tbody></table>
         </div><div id="cashflow-empty" class="empty-state" style="display:none"><div class="empty-icon">💸</div>No transactions yet.</div>
       </div>
@@ -699,6 +707,10 @@ let charts={};
 const PAL=['#7c6dfa','#fa6d9e','#6dfabd','#facc6d','#6dbefa','#fa9c6d','#c46dfa','#6dfae5'];
 function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
 function getGridColor(){return document.body.classList.contains('light')?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.04)';}
+function getGreenColor(alpha=1){
+  const c=document.body.classList.contains('light')?'26,122,85':'109,250,189';
+  return alpha<1?`rgba(${c},${alpha})`:`rgb(${c})`;
+}
 function getTickColor(){return document.body.classList.contains('light')?'#8888a8':'#6b6b8a';}
 function getLegendColor(){return document.body.classList.contains('light')?'#1a1a2e':'#e8e8f0';}
 function getBorderColor(){return document.body.classList.contains('light')?'#f0f0f6':'#12121a';}
@@ -712,7 +724,7 @@ function buildAllocationChart(){
   const stocks=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0)*fxRate;
   const crypto=db.crypto.reduce((s,h)=>s+(+h.currentValueUSD||0),0)*fxRate;
   const labels=[],data=[],colors=[];
-  if(cash){labels.push('Cash');data.push(cash);colors.push('#6dfabd');}
+  if(cash){labels.push('Cash');data.push(cash);colors.push(getGreenColor());}
   if(stocks){labels.push('Stocks/ETFs');data.push(stocks);colors.push('#7c6dfa');}
   if(crypto){labels.push('Crypto');data.push(crypto);colors.push('#fa6d9e');}
   if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
@@ -856,7 +868,7 @@ function buildCashFlowChart(){
   for(let i=months_n;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({label:d.toLocaleString('default',{month:'short',year:'2-digit'}),year:d.getFullYear(),month:d.getMonth()});}
   const income=months.map(m=>db.transactions.filter(t=>t.type==='income'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+(+t.amount||0),0));
   const expense=months.map(m=>db.transactions.filter(t=>t.type==='expense'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+(+t.amount||0),0));
-  charts['cashflow']=new Chart(ctx,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Income',data:income,backgroundColor:'rgba(109,250,189,0.7)',borderRadius:6,borderSkipped:false},{label:'Expenses',data:expense,backgroundColor:'rgba(250,109,109,0.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getLegendColor(),font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  charts['cashflow']=new Chart(ctx,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Income',data:income,backgroundColor:getGreenColor(0.7),borderRadius:6,borderSkipped:false},{label:'Expenses',data:expense,backgroundColor:'rgba(250,109,109,0.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getLegendColor(),font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 function buildExpensesChart(){
@@ -878,7 +890,7 @@ function buildIncVsExpChart(){
   const filtered=db.transactions.filter(t=>new Date(t.date)>=cutoff);
   const inc=filtered.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
   const exp=filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
-  charts['incvexp']=new Chart(ctx,{type:'bar',data:{labels:['Income','Expenses'],datasets:[{data:[inc,exp],backgroundColor:['rgba(109,250,189,0.7)','rgba(250,109,109,0.7)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  charts['incvexp']=new Chart(ctx,{type:'bar',data:{labels:['Income','Expenses'],datasets:[{data:[inc,exp],backgroundColor:[getGreenColor(0.7),'rgba(250,109,109,0.7)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 // ─── CALCULATIONS ─────────────────────────────────────────────────────────────
@@ -926,9 +938,9 @@ function refreshDashboard(){
   const totalExpense=db.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
   const savingsRate=totalIncome?((totalIncome-totalExpense)/totalIncome*100).toFixed(1):0;
   document.getElementById('dash-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-label">Total Net Worth</div><div class="stat-value">${fmt(nw)}</div></div>
-    <div class="stat-card"><div class="stat-label">All-Time Portfolio</div><div class="stat-value">${fmt(portVal)}</div><div class="stat-change ${portGain>=0?'up':'down'}">${portGain>=0?'▲':'▼'} ${fmt(Math.abs(portGain))} (${fmtPct(portPct)})</div></div>
-    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>=0?'positive':'negative'}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>=0?'up':'down'}">${fmtPct(tfPct)} in selected window</div></div>
+    <div class="stat-card"><div class="stat-label">Total Net Worth</div><div class="stat-value ${nw<0?'negative':''}">${fmt(nw)}</div></div>
+    <div class="stat-card"><div class="stat-label">All-Time Portfolio</div><div class="stat-value">${fmt(portVal)}</div><div class="stat-change ${portGain>0?'up':portGain<0?'down':''}">${portGain>0?'▲':portGain<0?'▼':''} ${fmt(Math.abs(portGain))} (${fmtPct(portPct)})</div></div>
+    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>0?'positive':tfGain<0?'negative':''}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>0?'up':tfGain<0?'down':''}">${fmtPct(tfPct)} in selected window</div></div>
     <div class="stat-card"><div class="stat-label">Savings Rate</div><div class="stat-value">${savingsRate}%</div><div class="stat-change">${fmt(totalIncome)} income</div></div>
   `;
   buildAllocationChart();buildAssetsChart();buildNetWorthChart();
@@ -939,7 +951,7 @@ function refreshAccounts(){
   const empty=document.getElementById('accounts-empty');
   const total=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
   const interestAccounts=db.accounts.filter(a=>a.interestRate).length;
-  const monthlyInterestTotal=db.accounts.filter(a=>a.interestRate).reduce((s,a)=>s+(a.balance*(a.interestRate/100/12)),0);
+  const monthlyInterestTotal=db.accounts.filter(a=>a.interestRate&&a.balance>0).reduce((s,a)=>s+(a.balance*(a.interestRate/100/12)),0);
   document.getElementById('accounts-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total Cash</div><div class="stat-value">${fmt(total)}</div></div>
     <div class="stat-card"><div class="stat-label">Accounts</div><div class="stat-value">${db.accounts.length}</div><div class="stat-change">${interestAccounts} earning interest</div></div>
@@ -949,7 +961,7 @@ function refreshAccounts(){
   empty.style.display='none';
   tbody.innerHTML=db.accounts.map(a=>{
     const interestBadge=a.interestRate?`<span style="font-size:10px;background:rgba(250,204,109,0.15);color:var(--accent4);border-radius:4px;padding:2px 6px;margin-left:6px;">${a.interestRate}% ${a.autoInterest?'auto':'manual'}</span>`:'';
-    const monthlyEst=a.interestRate?`<div style="font-size:11px;color:var(--accent4);margin-top:2px;">+${fmt(a.balance*(a.interestRate/100/12))}/mo est.</div>`:'';
+    const monthlyEst=a.interestRate&&a.balance>0?`<div style="font-size:11px;color:var(--accent4);margin-top:2px;">+${fmt(a.balance*(a.interestRate/100/12))}/mo est.</div>`:'';
     return`<tr>
       <td><strong>${a.name}</strong>${interestBadge}${monthlyEst}</td>
       <td>${a.bank||'—'}</td>
@@ -996,8 +1008,8 @@ function refreshStocks(){
 
   document.getElementById('stocks-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total Value</div><div class="stat-value">${fmt(totalValUSD*fxRate)}</div>${code!=='USD'?`<div class="stat-change">${fmtUSD(totalValUSD)}</div>`:''}</div>
-    <div class="stat-card"><div class="stat-label">All-Time Gain/Loss</div><div class="stat-value ${totalGain>=0?'positive':'negative'}">${fmt(totalGain)}</div><div class="stat-change ${totalGain>=0?'up':'down'}">${fmtPct(pct)}</div></div>
-    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>=0?'positive':'negative'}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>=0?'up':'down'}">${fmtPct(tfPct)} · ${tfHoldingCount} stock${tfHoldingCount!==1?'s':''}</div></div>
+    <div class="stat-card"><div class="stat-label">All-Time Gain/Loss</div><div class="stat-value ${totalGain>0?'positive':totalGain<0?'negative':''}">${fmt(totalGain)}</div><div class="stat-change ${totalGain>0?'up':totalGain<0?'down':''}">${fmtPct(pct)}</div></div>
+    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>0?'positive':tfGain<0?'negative':''}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>0?'up':tfGain<0?'down':''}">${fmtPct(tfPct)} · ${tfHoldingCount} stock${tfHoldingCount!==1?'s':''}</div></div>
     <div class="stat-card"><div class="stat-label">Total Holdings</div><div class="stat-value">${db.stocks.length}</div></div>
   `;
   buildStocksTimeline();buildStocksPie();buildStocksGainLoss();
@@ -1036,9 +1048,10 @@ function refreshStocks(){
         </div>
       </div></td>
       <td><strong>${fmt(valUSD*fxRate)}</strong></td>
-      <td class="${g>=0?'positive':'negative'}">${fmt(g)}<br><small>${fmtPct(p)}</small></td>
+      <td class="${g>0?'positive':g<0?'negative':''}">${fmt(g)}<br><small>${fmtPct(p)}</small></td>
       <td style="padding:11px 20px;white-space:nowrap;">
         <div style="display:flex;gap:6px;">
+          <button class="btn secondary" style="padding:4px 10px;font-size:11px;white-space:nowrap;" onclick="openModal('edit-stock','${h.id}')">✎ Edit</button>
           <button class="btn secondary" style="padding:4px 10px;font-size:11px;white-space:nowrap;" onclick="openModal('add-lot','${h.id}')">+ Buy More</button>
           <button class="btn danger" style="padding:4px 10px;font-size:11px;background:transparent;color:var(--danger);border:1px solid var(--border);" onclick="deleteItem('stocks','${h.id}')">✕</button>
         </div>
@@ -1062,8 +1075,8 @@ function refreshCrypto(){
   const code=getCurrencyCode();
   document.getElementById('crypto-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total Value</div><div class="stat-value">${fmt(totalValUSD*fxRate)}</div>${code!=='USD'?`<div class="stat-change">${fmtUSD(totalValUSD)}</div>`:''}</div>
-    <div class="stat-card"><div class="stat-label">All-Time Gain/Loss</div><div class="stat-value ${totalGain>=0?'positive':'negative'}">${fmt(totalGain)}</div><div class="stat-change ${totalGain>=0?'up':'down'}">${fmtPct(pct)}</div></div>
-    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>=0?'positive':'negative'}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>=0?'up':'down'}">${fmtPct(tfPct)} · ${tfHoldings.length} asset${tfHoldings.length!==1?'s':''}</div></div>
+    <div class="stat-card"><div class="stat-label">All-Time Gain/Loss</div><div class="stat-value ${totalGain>0?'positive':totalGain<0?'negative':''}">${fmt(totalGain)}</div><div class="stat-change ${totalGain>0?'up':totalGain<0?'down':''}">${fmtPct(pct)}</div></div>
+    <div class="stat-card"><div class="stat-label">Return (${tf})</div><div class="stat-value ${tfGain>0?'positive':tfGain<0?'negative':''}">${fmt(Math.abs(tfGain))}</div><div class="stat-change ${tfGain>0?'up':tfGain<0?'down':''}">${fmtPct(tfPct)} · ${tfHoldings.length} asset${tfHoldings.length!==1?'s':''}</div></div>
     <div class="stat-card"><div class="stat-label">Total Assets</div><div class="stat-value">${db.crypto.length}</div></div>
   `;
   buildCryptoTimeline();buildCryptoPie();buildCryptoGainLoss();
@@ -1073,21 +1086,21 @@ function refreshCrypto(){
     const valUSD=+h.currentValueUSD||0;const invUSD=+h.investedUSD||0;
     const g=(valUSD-invUSD)*fxRate;const p=invUSD?((valUSD-invUSD)/invUSD*100):0;
     const inWindow=new Date(h.purchaseDate||'2000-01-01')>=cutoff;
+    const coinsCell=h.coinsHeld
+      ?`<td style="font-size:12px">${(+h.coinsHeld).toFixed(8)} <span style="color:var(--muted)">${h.symbol}</span></td>`
+      :`<td style="color:var(--muted);font-size:12px">—</td>`;
+    const priceCell=h.currentPriceUSD
+      ?`<td style="font-size:12px">${fmtUSD(h.currentPriceUSD)}</td>`
+      :`<td style="color:var(--muted);font-size:12px">—</td>`;
     return`<tr class="${!inWindow&&tf!=='ALL'?'tf-dimmed':''}">
       <td><strong>${h.name}</strong></td>
       <td><span class="badge crypto">${h.symbol}</span></td>
       <td style="color:var(--muted);font-size:12px">${h.purchaseDate||'—'}</td>
       <td>${fmtUSD(h.investedUSD)}</td>
-      <td><div class="price-cell">
-        <span class="price-display" id="pd-c-${h.id}" onclick="startEditCryptoValue('${h.id}')">${fmtUSD(h.currentValueUSD)}</span>
-        <div class="price-input-wrap" id="pi-c-${h.id}">
-          <input class="inline-input" id="pv-c-${h.id}" type="number" step="any" value="${h.currentValueUSD}">
-          <button class="inline-save" onclick="saveInlineCryptoValue('${h.id}')">✓</button>
-          <button class="inline-cancel" onclick="cancelEditCrypto('${h.id}')">✕</button>
-        </div>
-      </div></td>
+      ${coinsCell}
+      ${priceCell}
       <td><strong>${fmt(valUSD*fxRate)}</strong></td>
-      <td class="${g>=0?'positive':'negative'}">${fmt(g)}<br><small>${fmtPct(p)}</small></td>
+      <td class="${g>0?'positive':g<0?'negative':''}">${fmt(g)}<br><small>${fmtPct(p)}</small></td>
       <td><button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="deleteItem('crypto','${h.id}')">✕</button></td>
     </tr>`;
   }).join('');
@@ -1111,15 +1124,21 @@ function refreshCashFlow(){
   if(!db.transactions.length){tbody.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
   const sorted=[...filtered].sort((a,b)=>new Date(b.date)-new Date(a.date));
-  tbody.innerHTML=sorted.map(t=>`
-    <tr>
+  tbody.innerHTML=sorted.map(t=>{
+    const acc=t.accountId?db.accounts.find(a=>a.id===t.accountId):null;
+    const accCell=acc
+      ?`<td style="color:var(--muted);font-size:12px">${acc.name}</td>`
+      :`<td style="color:var(--border);font-size:12px">—</td>`;
+    return`<tr>
       <td style="color:var(--muted)">${t.date}</td>
       <td><strong>${t.description}</strong></td>
       <td style="color:var(--muted)">${t.category}</td>
       <td><span class="badge ${t.type}">${t.type}</span></td>
       <td class="${t.type==='income'?'positive':'negative'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>
+      ${accCell}
       <td><button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="deleteItem('transactions','${t.id}')">✕</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 // ─── INLINE EDITING ───────────────────────────────────────────────────────────
@@ -1223,8 +1242,31 @@ function openModal(type, extraId=null){
         <button class="btn" onclick="${isEdit?`updateAccount('${a.id}')`:'saveAccount()'}">${isEdit?'Save Changes':'Add Account'}</button>
       </div>`;
 
+  }else if(type==='edit-stock'){
+    const h=db.stocks.find(s=>s.id===extraId);if(!h)return;
+    html=`<div class="modal-title">Edit Stock / ETF</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Ticker</label><input class="form-input" id="f-ticker" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" value="${h.ticker||''}"></div>
+        <div class="form-group"><label class="form-label">Name (optional)</label><input class="form-input" id="f-name" placeholder="Apple Inc." value="${h.name||''}"></div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:16px 0 14px;padding-top:16px;">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:14px;">Position</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Total Shares</label><input class="form-input" id="f-shares" type="number" step="any" value="${h.shares||''}"></div>
+          <div class="form-group"><label class="form-label">Avg Cost / Share (USD)</label><input class="form-input" id="f-avgcost" type="number" step="any" value="${h.avgCost||''}"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Current Price (USD)</label><input class="form-input" id="f-current-price" type="number" step="any" value="${h.currentPrice||''}"></div>
+          <div class="form-group"><label class="form-label">Purchase Date</label><input class="form-input" id="f-date" type="date" value="${h.purchaseDate||today}"></div>
+        </div>
+      </div>
+      <div class="hint" style="margin-bottom:12px">💡 Editing shares or avg cost here overrides all lots. Use "Buy More" to add purchases instead.</div>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn" onclick="updateStock('${h.id}')">Save Changes</button>
+      </div>`;
+
   }else if(type==='stock'){
-    // New stock — just ask for ticker/name and first lot
     html=`<div class="modal-title">Add Stock / ETF</div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Ticker</label><input class="form-input" id="f-ticker" placeholder="AAPL" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
@@ -1273,13 +1315,37 @@ function openModal(type, extraId=null){
         Selected: <strong id="crypto-selected-label">—</strong>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">USD Invested</label><input class="form-input" id="f-invested" type="number" step="any" placeholder="e.g. 500"><div class="hint">Total you put in (USD)</div></div>
-        <div class="form-group"><label class="form-label">Current Value (USD)</label><input class="form-input" id="f-current" type="number" step="any" placeholder="e.g. 620"><div class="hint">What it's worth now</div></div>
+        <div class="form-group">
+          <label class="form-label">USD Invested</label>
+          <input class="form-input" id="f-invested" type="number" step="any" placeholder="e.g. 43" oninput="onCryptoInvestedInput()">
+          <div class="hint">Total you put in</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Purchase Date</label>
+          <input class="form-input" id="f-date" type="date" value="${today}" oninput="onCryptoInvestedInput()">
+        </div>
       </div>
-      <div class="form-group"><label class="form-label">Purchase Date</label><input class="form-input" id="f-date" type="date" value="${today}"></div>
+      <div id="crypto-fetch-row" style="display:none;margin-bottom:14px;">
+        <button class="btn refresh" style="width:100%" onclick="fetchPriceAtPurchase()">⟳ Fetch price on that date to calculate coins</button>
+        <div id="crypto-fetch-hint" style="font-size:11px;color:var(--muted);margin-top:6px;text-align:center;"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Price at Purchase (USD)</label>
+          <input class="form-input" id="f-price-at-purchase" type="number" step="any" placeholder="Auto-filled or enter manually" oninput="calcCoinsFromInvested()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Coins Held</label>
+          <input class="form-input" id="f-coins" type="number" step="any" placeholder="Auto-calculated or enter manually" oninput="calcInvestedFromCoins()">
+        </div>
+      </div>
+      <div id="crypto-calc-preview" style="display:none;background:rgba(124,109,250,0.06);border:1px solid rgba(124,109,250,0.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
       <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveCrypto()">Add Asset</button></div>`;
 
   }else if(type==='transaction'){
+    const accountOptions = db.accounts.length
+      ? db.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('')
+      : '<option value="">— No accounts added yet —</option>';
     html=`<div class="modal-title">Add Transaction</div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="f-type"><option value="income">Income</option><option value="expense">Expense</option></select></div>
@@ -1290,6 +1356,7 @@ function openModal(type, extraId=null){
         <div class="form-group"><label class="form-label">Category</label><input class="form-input" id="f-cat" placeholder="e.g. Salary, Arriendo..."></div>
         <div class="form-group"><label class="form-label">Amount (${code})</label><input class="form-input" id="f-amount" type="number" step="any" placeholder="0"></div>
       </div>
+      <div class="form-group"><label class="form-label">Bank Account</label><select class="form-select" id="f-account"><option value="">— No account —</option>${accountOptions}</select></div>
       <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveTransaction()">Add Transaction</button></div>`;
   }
 
@@ -1308,6 +1375,7 @@ function selectCrypto(symbol){
   selectedCrypto=CRYPTO_LIST.find(c=>c.symbol===symbol);
   const info=document.getElementById('crypto-selected-info');info.style.display='block';
   document.getElementById('crypto-selected-label').textContent=`${selectedCrypto.name} (${selectedCrypto.symbol})`;
+  onCryptoInvestedInput();
 }
 
 function closeModal(){document.getElementById('modal-overlay').classList.remove('open');}
@@ -1374,6 +1442,7 @@ function applyMonthlyInterest(){
   let applied=0;
   db.accounts.forEach(a=>{
     if(!a.autoInterest||!a.interestRate)return;
+    if(a.balance<=0)return; // never apply interest on negative or zero balance
     if(a.lastInterestDate===thisMonth)return; // already applied this month
     const monthlyRate=a.interestRate/100/12;
     const interest=Math.round((a.balance*monthlyRate)*100)/100;
@@ -1454,14 +1523,122 @@ function deleteLot(stockId, lotId){
   }});
 }
 
+function updateStock(id){
+  const h=db.stocks.find(s=>s.id===id);if(!h)return;
+  const ticker=document.getElementById('f-ticker').value.trim().toUpperCase();
+  const name=document.getElementById('f-name').value.trim();
+  const shares=parseFloat(document.getElementById('f-shares').value);
+  const avgCost=parseFloat(document.getElementById('f-avgcost').value);
+  const currentPrice=parseFloat(document.getElementById('f-current-price').value);
+  const date=document.getElementById('f-date').value;
+  if(!ticker||isNaN(shares)||isNaN(avgCost))return alert('Please fill in ticker, shares and avg cost.');
+  h.ticker=ticker;
+  h.name=name;
+  h.shares=shares;
+  h.avgCost=avgCost;
+  if(!isNaN(currentPrice))h.currentPrice=currentPrice;
+  if(date)h.purchaseDate=date;
+  // Rebuild lots to match updated totals (single synthetic lot)
+  h.lots=[{id:uid(),shares,price:avgCost,date:date||h.purchaseDate}];
+  save();closeModal();
+}
+
+function onCryptoInvestedInput(){
+  const invested=document.getElementById('f-invested')?.value;
+  const date=document.getElementById('f-date')?.value;
+  const fetchRow=document.getElementById('crypto-fetch-row');
+  if(fetchRow) fetchRow.style.display=(selectedCrypto&&invested&&date)?'block':'none';
+  calcCoinsFromInvested();
+}
+
+function calcCoinsFromInvested(){
+  const invested=parseFloat(document.getElementById('f-invested')?.value);
+  const price=parseFloat(document.getElementById('f-price-at-purchase')?.value);
+  const coinsEl=document.getElementById('f-coins');
+  const preview=document.getElementById('crypto-calc-preview');
+  if(!isNaN(invested)&&!isNaN(price)&&price>0&&coinsEl){
+    const coins=invested/price;
+    coinsEl.value=coins.toFixed(8);
+    if(preview){
+      preview.style.display='block';
+      preview.textContent=`$${invested} ÷ $${price.toLocaleString()} = ${coins.toFixed(8)} ${selectedCrypto?.symbol||'coins'}`;
+    }
+  } else if(preview) preview.style.display='none';
+}
+
+function calcInvestedFromCoins(){
+  const coins=parseFloat(document.getElementById('f-coins')?.value);
+  const price=parseFloat(document.getElementById('f-price-at-purchase')?.value);
+  const investedEl=document.getElementById('f-invested');
+  const preview=document.getElementById('crypto-calc-preview');
+  if(!isNaN(coins)&&!isNaN(price)&&price>0&&investedEl){
+    const invested=coins*price;
+    investedEl.value=invested.toFixed(2);
+    if(preview){
+      preview.style.display='block';
+      preview.textContent=`${coins.toFixed(8)} ${selectedCrypto?.symbol||'coins'} × $${price.toLocaleString()} = $${invested.toFixed(2)}`;
+    }
+  }
+}
+
+async function fetchPriceAtPurchase(){
+  if(!selectedCrypto)return;
+  const date=document.getElementById('f-date')?.value;
+  const hint=document.getElementById('crypto-fetch-hint');
+  const btn=document.querySelector('#crypto-fetch-row button');
+  if(!date){if(hint)hint.textContent='Please enter a purchase date first.';return;}
+  if(btn){btn.classList.add('loading');btn.textContent='⟳ Fetching...';}
+  if(hint)hint.textContent='';
+  try{
+    const isToday=date===new Date().toISOString().split('T')[0];
+    let price=null;
+    if(isToday){
+      // Use current price endpoint for today
+      const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${selectedCrypto.cgId}&vs_currencies=usd`);
+      if(!res.ok)throw new Error();
+      const data=await res.json();
+      price=data[selectedCrypto.cgId]?.usd;
+    } else {
+      // Use historical price endpoint
+      const [y,m,d]=date.split('-');
+      const ddmmyyyy=`${d}-${m}-${y}`;
+      const res=await fetch(`https://api.coingecko.com/api/v3/coins/${selectedCrypto.cgId}/history?date=${ddmmyyyy}&localization=false`);
+      if(!res.ok)throw new Error();
+      const data=await res.json();
+      price=data?.market_data?.current_price?.usd;
+    }
+    if(!price)throw new Error('No price data');
+    document.getElementById('f-price-at-purchase').value=price.toFixed(2);
+    if(hint)hint.textContent=`✓ ${selectedCrypto.symbol} was $${price.toLocaleString('en-US',{minimumFractionDigits:2})} on ${date}`;
+    calcCoinsFromInvested();
+  }catch(e){
+    if(hint)hint.textContent='Could not fetch price — enter manually.';
+  }finally{
+    if(btn){btn.classList.remove('loading');btn.textContent='⟳ Fetch price on that date to calculate coins';}
+  }
+}
+
 function saveCrypto(){
   if(!selectedCrypto)return alert('Please select a crypto asset.');
-  const invested=document.getElementById('f-invested').value;
-  const current=document.getElementById('f-current').value;
+  const invested=parseFloat(document.getElementById('f-invested').value);
+  const coins=parseFloat(document.getElementById('f-coins').value);
+  const priceAtPurchase=parseFloat(document.getElementById('f-price-at-purchase').value);
   const purchaseDate=document.getElementById('f-date').value;
-  if(!invested||!current)return alert('Please fill in invested and current value.');
-  if(db.crypto.find(h=>h.symbol===selectedCrypto.symbol))return alert(`${selectedCrypto.name} already in portfolio.`);
-  db.crypto.push({id:uid(),name:selectedCrypto.name,symbol:selectedCrypto.symbol,cgId:selectedCrypto.cgId,investedUSD:+invested,currentValueUSD:+current,purchaseDate});
+  if(isNaN(invested)||invested<=0)return alert('Please enter how much USD you invested.');
+  if(isNaN(coins)||coins<=0)return alert('Please enter coins held, or fetch the price to calculate it automatically.');
+  if(db.crypto.find(h=>h.symbol===selectedCrypto.symbol))return alert(`${selectedCrypto.name} already in portfolio. Use the edit button to update it.`);
+  db.crypto.push({
+    id:uid(),
+    name:selectedCrypto.name,
+    symbol:selectedCrypto.symbol,
+    cgId:selectedCrypto.cgId,
+    investedUSD:invested,
+    coinsHeld:coins,
+    priceAtPurchase:isNaN(priceAtPurchase)?null:priceAtPurchase,
+    currentPriceUSD:isNaN(priceAtPurchase)?null:priceAtPurchase, // start with purchase price
+    currentValueUSD:invested, // starts at cost, updated on next refresh
+    purchaseDate
+  });
   save();closeModal();
 }
 
@@ -1471,8 +1648,18 @@ function saveTransaction(){
   const description=document.getElementById('f-desc').value.trim();
   const category=document.getElementById('f-cat').value.trim();
   const amount=document.getElementById('f-amount').value;
+  const accountId=document.getElementById('f-account').value;
   if(!description||!category||!amount||!date)return alert('Please fill in all fields.');
-  db.transactions.push({id:uid(),type,date,description,category,amount:+amount});
+  const t={id:uid(),type,date,description,category,amount:+amount,accountId:accountId||null};
+  db.transactions.push(t);
+  // Apply to linked account balance
+  if(accountId){
+    const acc=db.accounts.find(a=>a.id===accountId);
+    if(acc){
+      acc.balance=Math.round(((+acc.balance||0)+(type==='income'?+amount:-+amount))*100)/100;
+      acc.updated=new Date().toLocaleDateString();
+    }
+  }
   save();closeModal();
 }
 
@@ -1509,6 +1696,14 @@ function deleteItem(collection, id){
     msg: `"${name}" will be permanently deleted. This cannot be undone.`,
     confirmLabel: 'Remove',
     onConfirm: () => {
+      // If deleting a transaction linked to an account, reverse the balance change
+      if(collection==='transactions' && item && item.accountId){
+        const acc=db.accounts.find(a=>a.id===item.accountId);
+        if(acc){
+          acc.balance=Math.round(((+acc.balance||0)-(item.type==='income'?+item.amount:-+item.amount))*100)/100;
+          acc.updated=new Date().toLocaleDateString();
+        }
+      }
       db[collection] = db[collection].filter(i=>i.id!==id);
       save();
     }
@@ -1554,8 +1749,16 @@ async function fetchCryptoPrices(){
     for(const h of db.crypto){
       if(h.cgId&&data[h.cgId]?.usd){
         const priceNow=data[h.cgId].usd;
-        if(h._lastFetchedPrice){h.currentValueUSD=(h.currentValueUSD||h.investedUSD)*(priceNow/h._lastFetchedPrice);}
-        h._lastFetchedPrice=priceNow;updated++;
+        h.currentPriceUSD=priceNow;
+        if(h.coinsHeld){
+          // New model: currentValue = coins × live price
+          h.currentValueUSD=h.coinsHeld*priceNow;
+        } else {
+          // Legacy entries without coinsHeld: fall back to ratio method
+          if(h._lastFetchedPrice){h.currentValueUSD=(h.currentValueUSD||h.investedUSD)*(priceNow/h._lastFetchedPrice);}
+          h._lastFetchedPrice=priceNow;
+        }
+        updated++;
       }else failed.push(h.symbol);
     }
     save();btn.classList.remove('loading');btn.textContent='⟳ Refresh Prices';
