@@ -1579,18 +1579,29 @@ function initGoogleAuth() {
     client_id: GDRIVE_CLIENT_ID,
     scope: GDRIVE_SCOPES,
     callback: async (resp) => {
-      if (resp.error) { setSyncStatus('Auth failed: ' + resp.error, 'err'); return; }
+      if (resp.error) {
+        // Silent re-auth failed — user revoked access or needs to re-consent
+        if (resp.error === 'interaction_required' || resp.error === 'access_denied') {
+          localStorage.removeItem('vault_connected');
+          localStorage.removeItem('vault_gtoken_exp');
+          updateSyncUI(false);
+          setSyncStatus('', '');
+        } else {
+          setSyncStatus('Auth failed: ' + resp.error, 'err');
+        }
+        return;
+      }
       gToken = resp.access_token;
       localStorage.setItem('vault_gtoken_exp', Date.now() + (resp.expires_in * 1000));
+      localStorage.setItem('vault_connected', '1');
       setSyncStatus('Connected ✓', 'ok');
       updateSyncUI(true);
       await pullFromDrive();
     }
   });
-  // Restore session if token still valid
-  const exp = +localStorage.getItem('vault_gtoken_exp') || 0;
-  if (exp > Date.now() + 60000) {
-    // Token might still be alive — try a silent refresh
+  // If user previously connected, always attempt a silent re-auth on startup
+  if (localStorage.getItem('vault_connected') === '1') {
+    setSyncStatus('Reconnecting...', '');
     tokenClient.requestAccessToken({ prompt: '' });
   }
 }
@@ -1607,6 +1618,7 @@ function handleSyncClick() {
         gDriveFileId = null;
         localStorage.removeItem('vault_drive_file_id');
         localStorage.removeItem('vault_gtoken_exp');
+        localStorage.removeItem('vault_connected');
         updateSyncUI(false);
         setSyncStatus('Disconnected', '');
       }
