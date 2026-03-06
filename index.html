@@ -1229,9 +1229,10 @@ function refreshAccounts(){
   empty.style.display='none';
   tbody.innerHTML=db.accounts.map(a=>{
     const interestBadge=a.interestRate?`<span style="font-size:10px;background:rgba(250,204,109,0.15);color:var(--accent4);border-radius:4px;padding:2px 6px;margin-left:6px;">${a.interestRate}% ${a.autoInterest?'auto':'manual'}</span>`:'';
+    const feeBadge=a.monthlyFee?`<span style="font-size:10px;background:rgba(250,109,109,0.15);color:var(--danger);border-radius:4px;padding:2px 6px;margin-left:6px;">-${fmt(a.monthlyFee)}/mo ${a.autoFee?'auto':'manual'}</span>`:'';
     const monthlyEst=a.interestRate&&a.balance>0?`<div style="font-size:11px;color:var(--accent4);margin-top:2px;">+${fmt(a.balance*(a.interestRate/100/12))}/mo est.</div>`:'';
     return`<tr>
-      <td><strong>${a.name}</strong>${interestBadge}${monthlyEst}</td>
+      <td><strong>${a.name}</strong>${interestBadge}${feeBadge}${monthlyEst}</td>
       <td>${a.bank||'—'}</td>
       <td><span class="badge cash">${a.type||'checking'}</span></td>
       <td><strong>${fmt(a.balance)}</strong></td>
@@ -1505,6 +1506,28 @@ function openModal(type, extraId=null){
           </div>`:''}
         </div>
       </div>
+      <div style="border-top:1px solid var(--border);margin:16px 0 14px;padding-top:16px;">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:14px;">Monthly Fee</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <input type="checkbox" id="f-has-fee" style="width:16px;height:16px;accent-color:var(--danger);cursor:pointer;" ${isEdit&&a.monthlyFee?'checked':''} onchange="toggleFeeFields()">
+          <label for="f-has-fee" style="font-size:13px;cursor:pointer;">This account has a monthly fee</label>
+        </div>
+        <div id="fee-fields" style="display:${isEdit&&a.monthlyFee?'block':'none'}">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Fee Amount (${code})</label>
+              <input class="form-input" id="f-monthly-fee" type="number" step="any" placeholder="e.g. 12000" value="${isEdit&&a.monthlyFee?a.monthlyFee:''}">
+            </div>
+            <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:6px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <input type="checkbox" id="f-auto-fee" style="width:16px;height:16px;accent-color:var(--danger);cursor:pointer;" ${isEdit&&a.autoFee?'checked':''}>
+                <label for="f-auto-fee" style="font-size:13px;cursor:pointer;">Auto-deduct monthly</label>
+              </div>
+            </div>
+          </div>
+          <div class="info-box" style="margin-top:0">💡 If auto-deduct is on, the fee will be deducted from this account's balance on the 1st of each month and logged as an expense.</div>
+        </div>
+      </div>
       <div class="modal-actions">
         <button class="btn secondary" onclick="closeModal()">Cancel</button>
         <button class="btn" onclick="${isEdit?`updateAccount('${a.id}')`:'saveAccount()'}">${isEdit?'Save Changes':'Add Account'}</button>
@@ -1615,7 +1638,7 @@ function openModal(type, extraId=null){
       ? db.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('')
       : '<option value="">— No accounts added yet —</option>';
     const buildCatOptions = type => {
-      const cats = db.settings.categories[type]||[];
+      const cats = (db.settings.categories&&db.settings.categories[type])||DEFAULT_CATEGORIES[type]||[];
       return cats.map(c=>`<option value="${c}">${c}</option>`).join('');
     };
     html=`<div class="modal-title">Add Transaction</div>
@@ -1667,6 +1690,10 @@ function toggleInterestFields(){
   const checked=document.getElementById('f-has-interest').checked;
   document.getElementById('interest-fields').style.display=checked?'block':'none';
 }
+function toggleFeeFields(){
+  const checked=document.getElementById('f-has-fee').checked;
+  document.getElementById('fee-fields').style.display=checked?'block':'none';
+}
 
 function getInterestFields(){
   const hasInterest=document.getElementById('f-has-interest')?.checked||false;
@@ -1678,6 +1705,15 @@ function getInterestFields(){
   };
 }
 
+function getFeeFields(){
+  const hasFee=document.getElementById('f-has-fee')?.checked||false;
+  if(!hasFee)return{monthlyFee:null,autoFee:false};
+  return{
+    monthlyFee:parseFloat(document.getElementById('f-monthly-fee')?.value)||null,
+    autoFee:document.getElementById('f-auto-fee')?.checked||false
+  };
+}
+
 function saveAccount(){
   const name=document.getElementById('f-name').value.trim();
   const bank=document.getElementById('f-bank').value.trim();
@@ -1685,13 +1721,15 @@ function saveAccount(){
   const balance=document.getElementById('f-balance').value;
   if(!name||balance==='')return alert('Please fill in name and balance.');
   const {interestRate,compounding,autoInterest}=getInterestFields();
+  const {monthlyFee,autoFee}=getFeeFields();
   const today=new Date().toISOString().split('T')[0];
   const account={
     id:uid(),name,bank,type,balance:+balance,
     updated:new Date().toLocaleDateString(),
     interestRate,compounding,autoInterest,
     rateHistory:interestRate?[{date:today,rate:interestRate}]:[],
-    lastInterestDate:null
+    lastInterestDate:null,
+    monthlyFee,autoFee,lastFeeDate:null
   };
   db.accounts.push(account);
   save();closeModal();
@@ -1705,6 +1743,7 @@ function updateAccount(id){
   a.balance=parseFloat(document.getElementById('f-balance').value)||a.balance;
   a.updated=new Date().toLocaleDateString();
   const {interestRate,compounding,autoInterest}=getInterestFields();
+  const {monthlyFee,autoFee}=getFeeFields();
   // If rate changed, log it in history
   if(interestRate && interestRate !== a.interestRate){
     if(!a.rateHistory)a.rateHistory=[];
@@ -1714,6 +1753,9 @@ function updateAccount(id){
   a.compounding=compounding;
   a.autoInterest=autoInterest;
   if(!interestRate){a.rateHistory=[];a.autoInterest=false;}
+  a.monthlyFee=monthlyFee;
+  a.autoFee=autoFee;
+  if(!monthlyFee){a.autoFee=false;a.lastFeeDate=null;}
   save();closeModal();
 }
 
@@ -1740,6 +1782,32 @@ function applyMonthlyInterest(){
       description:`Interest — ${a.name}`,
       category:'Interest',
       amount:interest,
+      autoGenerated:true
+    });
+    applied++;
+  });
+  if(applied>0)save();
+}
+
+// Auto-deduct monthly fees for accounts that have it enabled
+function applyMonthlyFees(){
+  const today=new Date();
+  const thisMonth=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+  let applied=0;
+  db.accounts.forEach(a=>{
+    if(!a.autoFee||!a.monthlyFee)return;
+    if(a.lastFeeDate===thisMonth)return; // already applied this month
+    a.balance=Math.round((a.balance-a.monthlyFee)*100)/100;
+    a.lastFeeDate=thisMonth;
+    a.updated=today.toLocaleDateString();
+    db.transactions.push({
+      id:uid(),
+      type:'expense',
+      date:today.toISOString().split('T')[0],
+      description:`Monthly fee — ${a.name}`,
+      category:'Bank Fees',
+      amount:a.monthlyFee,
+      accountId:a.id,
       autoGenerated:true
     });
     applied++;
@@ -2543,6 +2611,7 @@ load();
 applyTheme(db.settings.theme || 'dark');
 // Apply monthly interest for auto-interest accounts (safe — skips if already done this month)
 applyMonthlyInterest();
+applyMonthlyFees();
 refreshAll();
 updateSettingsUI();
 initGoogleAuth();
