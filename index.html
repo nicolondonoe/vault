@@ -1096,7 +1096,7 @@ function buildInsights(){
         <div class="insight-bar-row">
           <div class="insight-bar-label">${cat}</div>
           <div class="insight-bar-track"><div class="insight-bar-fill" style="width:${(amt/max*100).toFixed(1)}%;background:var(--accent2)"></div></div>
-          <div class="insight-bar-amt">${fmt(amt*fxRate)}</div>
+          <div class="insight-bar-amt">${fmt(amt)}</div>
         </div>`).join('');
       cards.push(`<div class="insight-card wide">
         <div class="insight-emoji">📊</div>
@@ -1150,8 +1150,8 @@ function buildInsights(){
       cards.push(`<div class="insight-card">
         <div class="insight-emoji">⚡</div>
         <div class="insight-label">Largest Transactions</div>
-        ${biggestExp?`<div class="insight-sub" style="margin-bottom:6px">Biggest expense: <strong class="negative">${fmt(biggestExp.amount*fxRate)}</strong><br><span style="font-size:11px;color:var(--muted)">${biggestExp.description} · ${biggestExp.date}</span></div>`:''}
-        ${biggestInc?`<div class="insight-sub">Biggest income: <strong class="positive">${fmt(biggestInc.amount*fxRate)}</strong><br><span style="font-size:11px;color:var(--muted)">${biggestInc.description} · ${biggestInc.date}</span></div>`:''}
+        ${biggestExp?`<div class="insight-sub" style="margin-bottom:6px">Biggest expense: <strong class="negative">${fmt(biggestExp.amount)}</strong><br><span style="font-size:11px;color:var(--muted)">${biggestExp.description} · ${biggestExp.date}</span></div>`:''}
+        ${biggestInc?`<div class="insight-sub">Biggest income: <strong class="positive">${fmt(biggestInc.amount)}</strong><br><span style="font-size:11px;color:var(--muted)">${biggestInc.description} · ${biggestInc.date}</span></div>`:''}
       </div>`);
     }
   }
