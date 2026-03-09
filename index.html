@@ -1637,8 +1637,10 @@ function openModal(type, extraId=null){
     const accountOptions = db.accounts.length
       ? db.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('')
       : '<option value="">— No accounts added yet —</option>';
-    const buildCatOptions = type => {
-      const cats = (db.settings.categories&&db.settings.categories[type])||DEFAULT_CATEGORIES[type]||[];
+    const buildCatOptions = t => {
+      const cats = (db.settings.categories&&db.settings.categories[t]&&db.settings.categories[t].length)
+        ? db.settings.categories[t]
+        : DEFAULT_CATEGORIES[t]||[];
       return cats.map(c=>`<option value="${c}">${c}</option>`).join('');
     };
     html=`<div class="modal-title">Add Transaction</div>
@@ -1994,7 +1996,9 @@ function saveCrypto(){
 
 function onTransactionTypeChange(){
   const type=document.getElementById('f-type').value;
-  const cats=db.settings.categories[type]||[];
+  const cats=(db.settings.categories&&db.settings.categories[type]&&db.settings.categories[type].length)
+    ? db.settings.categories[type]
+    : DEFAULT_CATEGORIES[type]||[];
   const sel=document.getElementById('f-cat');
   sel.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('')+'<option value="__new__">+ New category…</option>';
   document.getElementById('new-cat-wrap').classList.remove('visible');
@@ -2011,6 +2015,8 @@ function addNewCategory(){
   const name=document.getElementById('new-cat-input').value.trim();
   if(!name)return;
   const type=document.getElementById('f-type').value;
+  if(!db.settings.categories)db.settings.categories={income:[...DEFAULT_CATEGORIES.income],expense:[...DEFAULT_CATEGORIES.expense]};
+  if(!db.settings.categories[type])db.settings.categories[type]=[...DEFAULT_CATEGORIES[type]||[]];
   const cats=db.settings.categories[type];
   if(cats.includes(name)){
     // already exists — just select it
