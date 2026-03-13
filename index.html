@@ -363,7 +363,7 @@
       <span class="theme-toggle-icon" id="theme-icon">☀</span>
       <span id="theme-label">Light Mode</span>
     </button>
-    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.7.1</span></div>
+    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.7.2</span></div>
     <div class="sync-bar">
       <button class="sync-btn" id="sync-btn" onclick="handleSyncClick()">
         <span id="sync-btn-icon">☁</span>
@@ -411,6 +411,9 @@
     <div id="page-accounts" class="page">
       <div class="page-header"><div><div class="page-title">Bank Accounts</div><div class="page-sub">Track your cash across all accounts</div></div></div>
       <div class="stat-grid" id="accounts-stats"></div>
+      <div class="chart-grid" id="accounts-chart-grid" style="display:none">
+        <div class="chart-card"><div class="chart-title">Balance Distribution</div><div class="chart-wrap"><canvas id="chart-accounts-dist"></canvas></div></div>
+      </div>
       <div class="data-card">
         <div class="data-card-header">
           <div class="data-card-title">All Accounts</div>
@@ -573,7 +576,7 @@
         <div class="settings-section-title">Data</div>
         <div class="settings-row" style="opacity:0.5;pointer-events:none;">
           <div><div class="settings-row-label">App Version</div><div class="settings-row-sub">Schema v7</div></div>
-          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.7.1</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.7.2</span>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Export Backup</div><div class="settings-row-sub">Download all data as JSON</div></div>
@@ -645,7 +648,7 @@ const CRYPTO_LIST = [
 // ─── DB ───────────────────────────────────────────────────────────────────────
 const DB_KEY = 'vault_data_v3';
 const SCHEMA_VERSION = 7;
-const APP_VERSION = '0.7.1';
+const APP_VERSION = '0.7.2';
 const SUPPORTED_CURRENCIES = ['COP','USD','EUR'];
 
 const DEFAULT_CATEGORIES = {
@@ -1282,6 +1285,20 @@ function buildInsights(){
   grid.innerHTML=cards.join('');
 }
 
+function buildAccountsDistChart(){
+  destroyChart('accounts-dist');
+  const ctx=document.getElementById('chart-accounts-dist');if(!ctx)return;
+  const grid=document.getElementById('accounts-chart-grid');
+  const visible=db.accounts.filter(a=>(+a.balance||0)>0);
+  if(visible.length<2){if(grid)grid.style.display='none';return;}
+  if(grid)grid.style.display='';
+  const labels=visible.map(a=>a.name);
+  const data=visible.map(a=>toDisplay(+a.balance||0, a.currency||db.settings.currency));
+  const colors=visible.map((_,i)=>PAL[i%PAL.length]);
+  const isMobile=window.innerWidth<=768;
+  charts['accounts-dist']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:11},padding:isMobile?6:10}},tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.parsed)}`}}},cutout:'60%'}});
+}
+
 function refreshAccounts(){
   const tbody=document.getElementById('accounts-table');if(!tbody)return;
   const empty=document.getElementById('accounts-empty');
@@ -1294,8 +1311,9 @@ function refreshAccounts(){
     <div class="stat-card"><div class="stat-label">Accounts</div><div class="stat-value">${db.accounts.length}</div><div class="stat-change">${interestAccounts} earning interest</div></div>
     ${interestAccounts?`<div class="stat-card"><div class="stat-label">Est. Monthly Interest</div><div class="stat-value positive">${fmt(monthlyInterestTotal)}</div><div class="stat-change up">▲ ${fmt(monthlyInterestTotal*12)} / year</div></div>`:''}
   `;
-  if(!db.accounts.length){tbody.innerHTML='';empty.style.display='block';return;}
+  if(!db.accounts.length){tbody.innerHTML='';empty.style.display='block';buildAccountsDistChart();return;}
   empty.style.display='none';
+  buildAccountsDistChart();
   tbody.innerHTML=db.accounts.map(a=>{
     const aCur=a.currency||db.settings.currency;
     const currBadge=aCur!==db.settings.currency?`<span style="font-size:10px;background:rgba(109,190,250,0.15);color:#6dbefa;border-radius:4px;padding:2px 6px;margin-left:6px;">${aCur}</span>`:'';
