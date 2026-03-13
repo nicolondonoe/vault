@@ -363,7 +363,7 @@
       <span class="theme-toggle-icon" id="theme-icon">☀</span>
       <span id="theme-label">Light Mode</span>
     </button>
-    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.</div>
+    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5">v0.7.0</span></div>
     <div class="sync-bar">
       <button class="sync-btn" id="sync-btn" onclick="handleSyncClick()">
         <span id="sync-btn-icon">☁</span>
@@ -571,12 +571,16 @@
       </div>
       <div class="settings-section">
         <div class="settings-section-title">Data</div>
+        <div class="settings-row" style="opacity:0.5;pointer-events:none;">
+          <div><div class="settings-row-label">App Version</div><div class="settings-row-sub">Schema v7</div></div>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.7.0</span>
+        </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Export Backup</div><div class="settings-row-sub">Download all data as JSON</div></div>
           <button class="btn secondary" onclick="exportData()">↓ Export</button>
         </div>
         <div class="settings-row">
-          <div><div class="settings-row-label">Import Backup</div><div class="settings-row-sub">Restore from a JSON file</div></div>
+          <div><div class="settings-row-label">Import Backup</div><div class="settings-row-sub">Restore from a JSON file — auto-migrates old versions</div></div>
           <label class="btn secondary" style="cursor:pointer;">↑ Import<input type="file" accept=".json" style="display:none;" onchange="importData(event)"></label>
         </div>
         <div class="settings-row">
@@ -640,24 +644,82 @@ const CRYPTO_LIST = [
 
 // ─── DB ───────────────────────────────────────────────────────────────────────
 const DB_KEY = 'vault_data_v3';
+const SCHEMA_VERSION = 7;
+const APP_VERSION = '0.7.0';
+const SUPPORTED_CURRENCIES = ['COP','USD','EUR'];
+
 const DEFAULT_CATEGORIES = {
   income: ['Salary','Freelance','Interest','Dividends','Rental Income','Gift','Refund','Other Income'],
   expense: ['Housing','Food','Transport','Utilities','Healthcare','Education','Entertainment','Shopping','Travel','Subscriptions','Insurance','Personal Care','Debt Payment','Other Expense']
 };
-let db = {accounts:[],stocks:[],crypto:[],transactions:[],settings:{currency:'COP',fxRate:4200,categories:{income:[...DEFAULT_CATEGORIES.income],expense:[...DEFAULT_CATEGORIES.expense]},currencyLabel:'off'}};
+let db = {schemaVersion:SCHEMA_VERSION,accounts:[],stocks:[],crypto:[],transactions:[],settings:{currency:'COP',fxRate:4200,categories:{income:[...DEFAULT_CATEGORIES.income],expense:[...DEFAULT_CATEGORIES.expense]},currencyLabel:'off'}};
+
+// ─── MIGRATION ────────────────────────────────────────────────────────────────
+function migrate(data){
+  const v = data.schemaVersion || 0;
+  if(v < 7){
+    // Add currency field to all accounts — default to display currency or COP
+    const defCur = data.settings?.currency || 'COP';
+    (data.accounts||[]).forEach(a => {
+      if(!a.currency) a.currency = defCur;
+    });
+    // Add currency fields to all transactions
+    (data.transactions||[]).forEach(t => {
+      if(!t.currency) t.currency = defCur;
+      if(!t.convertedAmount) t.convertedAmount = t.amount;
+      if(!t.convertedCurrency) t.convertedCurrency = defCur;
+      if(!t.fxRateUsed) t.fxRateUsed = 1;
+    });
+    data.schemaVersion = 7;
+  }
+  return data;
+}
 
 function save(){localStorage.setItem(DB_KEY,JSON.stringify(db));refreshAll();}
 function load(){
   const raw=localStorage.getItem(DB_KEY);
-  if(raw){try{const p=JSON.parse(raw);db={...db,...p};if(!db.settings)db.settings={currency:'COP',fxRate:4200};
-    // Ensure categories exist for older saved data
+  if(raw){try{
+    let p=JSON.parse(raw);
+    p = migrate(p);
+    db={...db,...p};
+    if(!db.settings)db.settings={currency:'COP',fxRate:4200};
     if(!db.settings.categories)db.settings.categories={income:[...DEFAULT_CATEGORIES.income],expense:[...DEFAULT_CATEGORIES.expense]};
     if(!db.settings.categories.income)db.settings.categories.income=[...DEFAULT_CATEGORIES.income];
     if(!db.settings.categories.expense)db.settings.categories.expense=[...DEFAULT_CATEGORIES.expense];
     if(!db.settings.currencyLabel)db.settings.currencyLabel='off';
+    db.schemaVersion=SCHEMA_VERSION;
   }catch(e){}}
 }
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+
+// ─── CURRENCY HELPERS ─────────────────────────────────────────────────────────
+// Convert amount FROM a given currency TO display currency
+function toDisplay(amount, fromCurrency){
+  const disp = db.settings.currency;
+  if(fromCurrency === disp) return amount;
+  const rate = getFxRate(); // rate = displayCurrency per 1 USD
+  if(fromCurrency === 'USD' && disp !== 'USD') return amount * rate;
+  if(fromCurrency !== 'USD' && disp === 'USD') return amount / rate;
+  // Both non-USD (e.g. COP → EUR): go through USD
+  return amount / rate * getFxRate();
+}
+
+// Convert amount between two explicit currencies using stored FX rate
+function convertAmount(amount, fromCur, toCur){
+  if(fromCur === toCur) return {converted: amount, rate: 1};
+  const rate = getFxRate(); // displayCurrency per USD
+  // Build a simple USD-pivot conversion
+  let inUSD;
+  if(fromCur === 'USD') inUSD = amount;
+  else if(fromCur === db.settings.currency) inUSD = amount / rate;
+  else inUSD = amount; // fallback
+  let out;
+  if(toCur === 'USD') out = inUSD;
+  else if(toCur === db.settings.currency) out = inUSD * rate;
+  else out = inUSD;
+  const usedRate = amount > 0 ? out / amount : 1;
+  return {converted: Math.round(out * 100) / 100, rate: usedRate};
+}
 
 // ─── TIMEFRAMES ───────────────────────────────────────────────────────────────
 // tf: '1M','3M','6M','1Y','ALL'
@@ -794,7 +856,7 @@ function buildAllocationChart(){
   destroyChart('allocation');
   const ctx=document.getElementById('chart-allocation');if(!ctx)return;
   const fxRate=db.settings.currency!=='USD'?getFxRate():1;
-  const cash=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+  const cash=db.accounts.reduce((s,a)=>s+toDisplay(+a.balance||0, a.currency||db.settings.currency),0);
   const stocks=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0)*fxRate;
   const crypto=db.crypto.reduce((s,h)=>s+(+h.currentValueUSD||0),0)*fxRate;
   const labels=[],data=[],colors=[];
@@ -855,7 +917,7 @@ function buildNetWorthChart(){
   const cryptoHoldings=db.crypto.map(h=>({purchaseDate:h.purchaseDate,costUSD:+h.investedUSD||0,currentValueUSD:+h.currentValueUSD||0}));
   const allHoldings=[...stockHoldings,...cryptoHoldings];
   const {labels,values}=generateTimelineData(allHoldings,tf);
-  const cash=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+  const cash=db.accounts.reduce((s,a)=>s+toDisplay(+a.balance||0, a.currency||db.settings.currency),0);
   const converted=values.map(v=>v*fxRate+cash);
   charts['networth']=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Net Worth',data:converted,borderColor:'#7c6dfa',backgroundColor:'rgba(124,109,250,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointBackgroundColor:'#7c6dfa',pointRadius:3,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
@@ -940,8 +1002,9 @@ function buildCashFlowChart(){
   const now=new Date();
   const months=[];
   for(let i=months_n;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({label:d.toLocaleString('default',{month:'short',year:'2-digit'}),year:d.getFullYear(),month:d.getMonth()});}
-  const income=months.map(m=>db.transactions.filter(t=>t.type==='income'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+(+t.amount||0),0));
-  const expense=months.map(m=>db.transactions.filter(t=>t.type==='expense'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+(+t.amount||0),0));
+  const txDisp=t=>toDisplay(+t.amount||0, t.currency||db.settings.currency);
+  const income=months.map(m=>db.transactions.filter(t=>t.type==='income'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+txDisp(t),0));
+  const expense=months.map(m=>db.transactions.filter(t=>t.type==='expense'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+txDisp(t),0));
   charts['cashflow']=new Chart(ctx,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Income',data:income,backgroundColor:getGreenColor(0.7),borderRadius:6,borderSkipped:false},{label:'Expenses',data:expense,backgroundColor:'rgba(250,109,109,0.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getLegendColor(),font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
@@ -950,7 +1013,7 @@ function buildExpensesChart(){
   const ctx=document.getElementById('chart-expenses');if(!ctx)return;
   const tf=activeTF.cashflow;const cutoff=tfCutoff(tf);
   const filtered=db.transactions.filter(t=>t.type==='expense'&&new Date(t.date)>=cutoff);
-  const by={};filtered.forEach(t=>{by[t.category]=(by[t.category]||0)+(+t.amount||0);});
+  const by={};filtered.forEach(t=>{by[t.category]=(by[t.category]||0)+toDisplay(+t.amount||0, t.currency||db.settings.currency);});
   const labels=Object.keys(by),data=Object.values(by),colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
   const isMobile=window.innerWidth<=768;
@@ -962,14 +1025,14 @@ function buildIncVsExpChart(){
   const ctx=document.getElementById('chart-incvexp');if(!ctx)return;
   const tf=activeTF.cashflow;const cutoff=tfCutoff(tf);
   const filtered=db.transactions.filter(t=>new Date(t.date)>=cutoff);
-  const inc=filtered.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
-  const exp=filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  const inc=filtered.filter(t=>t.type==='income').reduce((s,t)=>s+toDisplay(+t.amount||0, t.currency||db.settings.currency),0);
+  const exp=filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+toDisplay(+t.amount||0, t.currency||db.settings.currency),0);
   charts['incvexp']=new Chart(ctx,{type:'bar',data:{labels:['Income','Expenses'],datasets:[{data:[inc,exp],backgroundColor:[getGreenColor(0.7),'rgba(250,109,109,0.7)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 // ─── CALCULATIONS ─────────────────────────────────────────────────────────────
 function calcNetWorth(){
-  const cash=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+  const cash=db.accounts.reduce((s,a)=>s+toDisplay(+a.balance||0, a.currency||db.settings.currency),0);
   const fxRate=db.settings.currency!=='USD'?getFxRate():1;
   const stocks=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0)*fxRate;
   const crypto=db.crypto.reduce((s,h)=>s+(+h.currentValueUSD||0),0)*fxRate;
@@ -1008,8 +1071,8 @@ function refreshDashboard(){
   const tfCryptoCost=db.crypto.filter(h=>new Date(h.purchaseDate||'2000-01-01')>=cutoff).reduce((s,h)=>s+(+h.investedUSD||0),0)*fxRate;
   const tfGain=(tfStockVal+tfCryptoVal)-(tfStockCost+tfCryptoCost);
   const tfPct=(tfStockCost+tfCryptoCost)?tfGain/(tfStockCost+tfCryptoCost)*100:0;
-  const totalIncome=db.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
-  const totalExpense=db.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  const totalIncome=db.transactions.filter(t=>t.type==='income').reduce((s,t)=>s+toDisplay(+t.amount||0,t.currency||db.settings.currency),0);
+  const totalExpense=db.transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+toDisplay(+t.amount||0,t.currency||db.settings.currency),0);
   const savingsRate=totalIncome?((totalIncome-totalExpense)/totalIncome*100).toFixed(1):0;
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total Net Worth</div><div class="stat-value ${nw<0?'negative':''}">${fmt(nw)}</div></div>
@@ -1054,6 +1117,7 @@ function switchDashTab(tab){
 
 // ─── INSIGHTS ────────────────────────────────────────────────────────────────
 function buildInsights(){
+  const txDisp=t=>toDisplay(+t.amount||0,t.currency||db.settings.currency);
   const grid=document.getElementById('insights-grid');
   if(!grid)return;
   const fxRate=db.settings.currency!=='USD'?getFxRate():1;
@@ -1073,8 +1137,8 @@ function buildInsights(){
     const now=new Date();
     const m30=new Date(now.getFullYear(),now.getMonth()-1,now.getDate());
     const recent=db.transactions.filter(t=>new Date(t.date)>=m30);
-    const inc=recent.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
-    const exp=recent.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+    const inc=recent.filter(t=>t.type==='income').reduce((s,t)=>s+txDisp(t),0);
+    const exp=recent.filter(t=>t.type==='expense').reduce((s,t)=>s+txDisp(t),0);
     const rate=inc>0?((inc-exp)/inc*100):null;
     const rateColor=rate===null?'var(--muted)':rate>=20?'var(--green)':rate>=0?'var(--accent4)':'var(--danger)';
     const rateLabel=rate===null?'No income logged':rate>=30?'Excellent saving 🎉':rate>=20?'Healthy saving':rate>=0?'Room to improve':'Spending more than earning';
@@ -1089,7 +1153,7 @@ function buildInsights(){
     const allExp=db.transactions.filter(t=>t.type==='expense'&&t.category);
     if(allExp.length){
       const byCat={};
-      allExp.forEach(t=>{byCat[t.category]=(byCat[t.category]||0)+(+t.amount||0);});
+      allExp.forEach(t=>{byCat[t.category]=(byCat[t.category]||0)+txDisp(t);});
       const sorted=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,5);
       const max=sorted[0][1];
       const bars=sorted.map(([cat,amt])=>`
@@ -1109,7 +1173,7 @@ function buildInsights(){
     const monthMap={};
     db.transactions.filter(t=>t.type==='expense').forEach(t=>{
       const k=t.date.slice(0,7);
-      monthMap[k]=(monthMap[k]||0)+(+t.amount||0);
+      monthMap[k]=(monthMap[k]||0)+txDisp(t);
     });
     const thisMonth=new Date().toISOString().slice(0,7);
     // Exclude current partial month from avg — only use completed months
@@ -1130,7 +1194,7 @@ function buildInsights(){
 
     // ── EMERGENCY FUND ───────────────────────────────────────────────────────
     if(hasAccounts&&monthVals.length){
-      const cashTotal=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+      const cashTotal=db.accounts.reduce((s,a)=>s+toDisplay(+a.balance||0, a.currency||db.settings.currency),0);
       const avgBurn=monthVals.reduce((s,v)=>s+v,0)/monthVals.length;
       const months=avgBurn>0?(cashTotal/avgBurn):null;
       const color=months===null?'var(--muted)':months>=6?'var(--green)':months>=3?'var(--accent4)':'var(--danger)';
@@ -1144,14 +1208,15 @@ function buildInsights(){
     }
 
     // ── BIGGEST SINGLE TRANSACTION ───────────────────────────────────────────
-    const biggestExp=db.transactions.filter(t=>t.type==='expense').sort((a,b)=>b.amount-a.amount)[0];
-    const biggestInc=db.transactions.filter(t=>t.type==='income').sort((a,b)=>b.amount-a.amount)[0];
+    const txD=t=>toDisplay(+t.amount||0,t.currency||db.settings.currency);
+    const biggestExp=db.transactions.filter(t=>t.type==='expense').sort((a,b)=>txD(b)-txD(a))[0];
+    const biggestInc=db.transactions.filter(t=>t.type==='income').sort((a,b)=>txD(b)-txD(a))[0];
     if(biggestExp||biggestInc){
       cards.push(`<div class="insight-card">
         <div class="insight-emoji">⚡</div>
         <div class="insight-label">Largest Transactions</div>
-        ${biggestExp?`<div class="insight-sub" style="margin-bottom:6px">Biggest expense: <strong class="negative">${fmt(biggestExp.amount)}</strong><br><span style="font-size:11px;color:var(--muted)">${biggestExp.description} · ${biggestExp.date}</span></div>`:''}
-        ${biggestInc?`<div class="insight-sub">Biggest income: <strong class="positive">${fmt(biggestInc.amount)}</strong><br><span style="font-size:11px;color:var(--muted)">${biggestInc.description} · ${biggestInc.date}</span></div>`:''}
+        ${biggestExp?`<div class="insight-sub" style="margin-bottom:6px">Biggest expense: <strong class="negative">${fmt(txD(biggestExp))}</strong><br><span style="font-size:11px;color:var(--muted)">${biggestExp.description} · ${biggestExp.date}</span></div>`:''}
+        ${biggestInc?`<div class="insight-sub">Biggest income: <strong class="positive">${fmt(txD(biggestInc))}</strong><br><span style="font-size:11px;color:var(--muted)">${biggestInc.description} · ${biggestInc.date}</span></div>`:''}
       </div>`);
     }
   }
@@ -1197,10 +1262,10 @@ function buildInsights(){
   // ── INTEREST EARNED ───────────────────────────────────────────────────────
   if(hasTransactions){
     const isInterest=t=>t.type==='income'&&(t.category==='Interest'||t.autoGenerated);
-    const interestTotal=db.transactions.filter(isInterest).reduce((s,t)=>s+(+t.amount||0),0);
+    const interestTotal=db.transactions.filter(isInterest).reduce((s,t)=>s+txDisp(t),0);
     if(interestTotal>0){
       const thisYear=new Date().getFullYear().toString();
-      const yearInterest=db.transactions.filter(t=>isInterest(t)&&t.date.startsWith(thisYear)).reduce((s,t)=>s+(+t.amount||0),0);
+      const yearInterest=db.transactions.filter(t=>isInterest(t)&&t.date.startsWith(thisYear)).reduce((s,t)=>s+txDisp(t),0);
       cards.push(`<div class="insight-card">
         <div class="insight-emoji">🏦</div>
         <div class="insight-label">Interest Earned</div>
@@ -1220,9 +1285,10 @@ function buildInsights(){
 function refreshAccounts(){
   const tbody=document.getElementById('accounts-table');if(!tbody)return;
   const empty=document.getElementById('accounts-empty');
-  const total=db.accounts.reduce((s,a)=>s+(+a.balance||0),0);
+  // Convert each account balance to display currency for the total
+  const total=db.accounts.reduce((s,a)=>s+toDisplay(+a.balance||0, a.currency||db.settings.currency),0);
   const interestAccounts=db.accounts.filter(a=>a.interestRate).length;
-  const monthlyInterestTotal=db.accounts.filter(a=>a.interestRate&&a.balance>0).reduce((s,a)=>s+(a.balance*(a.interestRate/100/12)),0);
+  const monthlyInterestTotal=db.accounts.filter(a=>a.interestRate&&a.balance>0).reduce((s,a)=>s+toDisplay(a.balance*(a.interestRate/100/12), a.currency||db.settings.currency),0);
   document.getElementById('accounts-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total Cash</div><div class="stat-value">${fmt(total)}</div></div>
     <div class="stat-card"><div class="stat-label">Accounts</div><div class="stat-value">${db.accounts.length}</div><div class="stat-change">${interestAccounts} earning interest</div></div>
@@ -1231,14 +1297,20 @@ function refreshAccounts(){
   if(!db.accounts.length){tbody.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
   tbody.innerHTML=db.accounts.map(a=>{
+    const aCur=a.currency||db.settings.currency;
+    const currBadge=aCur!==db.settings.currency?`<span style="font-size:10px;background:rgba(109,190,250,0.15);color:#6dbefa;border-radius:4px;padding:2px 6px;margin-left:6px;">${aCur}</span>`:'';
     const interestBadge=a.interestRate?`<span style="font-size:10px;background:rgba(250,204,109,0.15);color:var(--accent4);border-radius:4px;padding:2px 6px;margin-left:6px;">${a.interestRate}% ${a.autoInterest?'auto':'manual'}</span>`:'';
     const feeBadge=a.monthlyFee?`<span style="font-size:10px;background:rgba(250,109,109,0.15);color:var(--danger);border-radius:4px;padding:2px 6px;margin-left:6px;">-${fmt(a.monthlyFee)}/mo ${a.autoFee?'auto':'manual'}</span>`:'';
-    const monthlyEst=a.interestRate&&a.balance>0?`<div style="font-size:11px;color:var(--accent4);margin-top:2px;">+${fmt(a.balance*(a.interestRate/100/12))}/mo est.</div>`:'';
+    const monthlyEst=a.interestRate&&a.balance>0?`<div style="font-size:11px;color:var(--accent4);margin-top:2px;">+${fmt(a.balance*(a.interestRate/100/12))} ${aCur}/mo est.</div>`:'';
+    // Show balance in native currency, and converted if different
+    const balDisplay=aCur!==db.settings.currency
+      ? `<strong>${a.balance.toLocaleString()} ${aCur}</strong><div style="font-size:11px;color:var(--muted)">≈ ${fmt(toDisplay(a.balance,aCur))}</div>`
+      : `<strong>${fmt(a.balance)}</strong>`;
     return`<tr>
-      <td><strong>${a.name}</strong>${interestBadge}${feeBadge}${monthlyEst}</td>
+      <td><strong>${a.name}</strong>${currBadge}${interestBadge}${feeBadge}${monthlyEst}</td>
       <td>${a.bank||'—'}</td>
       <td><span class="badge cash">${a.type||'checking'}</span></td>
-      <td><strong>${fmt(a.balance)}</strong></td>
+      <td>${balDisplay}</td>
       <td style="color:var(--muted);font-size:12px">${a.updated||'—'}</td>
       <td style="display:flex;gap:6px;padding:11px 20px;">
         <button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="openModal('edit-account','${a.id}')">✎</button>
@@ -1383,8 +1455,10 @@ function refreshCashFlow(){
   const empty=document.getElementById('cashflow-empty');
   const tf=activeTF.cashflow;const cutoff=tfCutoff(tf);
   const filtered=db.transactions.filter(t=>new Date(t.date)>=cutoff);
-  const totalIncome=filtered.filter(t=>t.type==='income').reduce((s,t)=>s+(+t.amount||0),0);
-  const totalExpense=filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+(+t.amount||0),0);
+  // Convert each transaction to display currency for stats
+  const txDisplay=t=>toDisplay(+t.amount||0, t.currency||db.settings.currency);
+  const totalIncome=filtered.filter(t=>t.type==='income').reduce((s,t)=>s+txDisplay(t),0);
+  const totalExpense=filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+txDisplay(t),0);
   const net=totalIncome-totalExpense;
   document.getElementById('cashflow-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Income (${tf})</div><div class="stat-value positive">${fmt(totalIncome)}</div></div>
@@ -1398,15 +1472,22 @@ function refreshCashFlow(){
   const sorted=[...filtered].sort((a,b)=>new Date(b.date)-new Date(a.date));
   tbody.innerHTML=sorted.map(t=>{
     const acc=t.accountId?db.accounts.find(a=>a.id===t.accountId):null;
+    const tCur=t.currency||db.settings.currency;
+    const dispCur=db.settings.currency;
+    const wasConverted=tCur!==dispCur;
+    // Show original amount + currency, with conversion note if applicable
+    const amtCell=wasConverted
+      ?`<td class="${t.type==='income'?'positive':'negative'}">${t.type==='income'?'+':'-'}${t.amount.toLocaleString()} ${tCur}<div style="font-size:10px;color:var(--muted)">≈ ${fmt(txDisplay(t))}</div></td>`
+      :`<td class="${t.type==='income'?'positive':'negative'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>`;
     const accCell=acc
-      ?`<td style="color:var(--muted);font-size:12px">${acc.name}</td>`
+      ?`<td style="color:var(--muted);font-size:12px">${acc.name}${acc.currency&&acc.currency!==dispCur?` <span style="font-size:10px;opacity:0.7">${acc.currency}</span>`:''}</td>`
       :`<td style="color:var(--border);font-size:12px">—</td>`;
     return`<tr>
       <td style="color:var(--muted)">${t.date}</td>
       <td><strong>${t.description}</strong></td>
       <td style="color:var(--muted)">${t.category}</td>
       <td><span class="badge ${t.type}">${t.type}</span></td>
-      <td class="${t.type==='income'?'positive':'negative'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>
+      ${amtCell}
       ${accCell}
       <td><button class="btn secondary" style="padding:4px 10px;font-size:11px" onclick="deleteItem('transactions','${t.id}')">✕</button></td>
     </tr>`;
@@ -1471,7 +1552,14 @@ function openModal(type, extraId=null){
           <option ${(isEdit&&a.type==='other')?'selected':''}>other</option>
         </select></div>
       </div>
-      <div class="form-group"><label class="form-label">Current Balance (${code})</label><input class="form-input" id="f-balance" type="number" step="any" placeholder="0" value="${isEdit?a.balance:''}"></div>
+      <div class="form-group"><label class="form-label">Current Balance</label>
+        <div style="display:flex;gap:8px;">
+          <input class="form-input" id="f-balance" type="number" step="any" placeholder="0" value="${isEdit?a.balance:''}" style="flex:1">
+          <select class="form-select" id="f-acur" style="width:90px;">
+            ${SUPPORTED_CURRENCIES.map(c=>`<option value="${c}" ${(isEdit?a.currency||'COP':db.settings.currency)===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
       <div style="border-top:1px solid var(--border);margin:16px 0 14px;padding-top:16px;">
         <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:14px;">Interest Settings</div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
@@ -1638,8 +1726,8 @@ function openModal(type, extraId=null){
 
   }else if(type==='transaction'){
     const accountOptions = db.accounts.length
-      ? db.accounts.map(a=>`<option value="${a.id}">${a.name}</option>`).join('')
-      : '<option value="">— No accounts added yet —</option>';
+      ? db.accounts.map(a=>`<option value="${a.id}">${a.name} (${a.currency||db.settings.currency})</option>`).join('')
+      : '<option value="">— Add an account first —</option>';
     const buildCatOptions = t => {
       const cats = (db.settings.categories&&db.settings.categories[t]&&db.settings.categories[t].length)
         ? db.settings.categories[t]
@@ -1664,9 +1752,24 @@ function openModal(type, extraId=null){
             <button class="new-cat-add" onclick="addNewCategory()">Add</button>
           </div>
         </div>
-        <div class="form-group"><label class="form-label">Amount (${code})</label><input class="form-input" id="f-amount" type="number" step="any" placeholder="0"></div>
+        <div class="form-group">
+          <label class="form-label">Amount</label>
+          <div style="display:flex;gap:8px;">
+            <input class="form-input" id="f-amount" type="number" step="any" placeholder="0" style="flex:1" oninput="onAccountSelectChange()">
+            <select class="form-select" id="f-tcur" style="width:90px;" onchange="onAccountSelectChange()">
+              ${SUPPORTED_CURRENCIES.map(c=>`<option value="${c}" ${db.settings.currency===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+        </div>
       </div>
-      <div class="form-group"><label class="form-label">Bank Account</label><select class="form-select" id="f-account"><option value="">— No account —</option>${accountOptions}</select></div>
+      <div class="form-group">
+        <label class="form-label">Bank Account <span style="color:var(--danger)">*</span></label>
+        <select class="form-select" id="f-account" onchange="onAccountSelectChange()">
+          <option value="">— Select account —</option>
+          ${accountOptions}
+        </select>
+        <div id="f-conversion-preview" style="display:none;margin-top:6px;font-size:11px;color:var(--accent4);padding:6px 10px;background:rgba(250,204,109,0.08);border-radius:6px;border:1px solid rgba(250,204,109,0.2);"></div>
+      </div>
       <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveTransaction()">Add Transaction</button></div>`;
   }
 
@@ -1728,8 +1831,10 @@ function saveAccount(){
   const {interestRate,compounding,autoInterest}=getInterestFields();
   const {monthlyFee,autoFee}=getFeeFields();
   const today=new Date().toISOString().split('T')[0];
+  const currency=document.getElementById('f-acur')?.value||db.settings.currency;
   const account={
     id:uid(),name,bank,type,balance:+balance,
+    currency,
     updated:new Date().toLocaleDateString(),
     interestRate,compounding,autoInterest,
     rateHistory:interestRate?[{date:today,rate:interestRate}]:[],
@@ -1746,6 +1851,7 @@ function updateAccount(id){
   a.bank=document.getElementById('f-bank').value.trim();
   a.type=document.getElementById('f-type').value;
   a.balance=parseFloat(document.getElementById('f-balance').value)||a.balance;
+  a.currency=document.getElementById('f-acur')?.value||a.currency||db.settings.currency;
   a.updated=new Date().toLocaleDateString();
   const {interestRate,compounding,autoInterest}=getInterestFields();
   const {monthlyFee,autoFee}=getFeeFields();
@@ -1787,6 +1893,11 @@ function applyMonthlyInterest(){
       description:`Interest — ${a.name}`,
       category:'Interest',
       amount:interest,
+      currency:a.currency||db.settings.currency,
+      convertedAmount:interest,
+      convertedCurrency:a.currency||db.settings.currency,
+      fxRateUsed:1,
+      accountId:a.id,
       autoGenerated:true
     });
     applied++;
@@ -1812,6 +1923,10 @@ function applyMonthlyFees(){
       description:`Monthly fee — ${a.name}`,
       category:'Bank Fees',
       amount:a.monthlyFee,
+      currency:a.currency||db.settings.currency,
+      convertedAmount:a.monthlyFee,
+      convertedCurrency:a.currency||db.settings.currency,
+      fxRateUsed:1,
       accountId:a.id,
       autoGenerated:true
     });
@@ -2037,6 +2152,22 @@ function addNewCategory(){
   document.getElementById('new-cat-wrap').classList.remove('visible');
 }
 
+function onAccountSelectChange(){
+  const accountId=document.getElementById('f-account')?.value;
+  const tCur=document.getElementById('f-tcur')?.value||db.settings.currency;
+  const preview=document.getElementById('f-conversion-preview');
+  if(!preview)return;
+  if(!accountId){preview.style.display='none';return;}
+  const acc=db.accounts.find(a=>a.id===accountId);
+  if(!acc){preview.style.display='none';return;}
+  const aCur=acc.currency||db.settings.currency;
+  if(tCur===aCur){preview.style.display='none';return;}
+  const amount=parseFloat(document.getElementById('f-amount')?.value)||0;
+  const {converted,rate}=convertAmount(amount||1,tCur,aCur);
+  preview.style.display='block';
+  preview.textContent=`Will be converted: 1 ${tCur} = ${rate.toFixed(4)} ${aCur}${amount>0?` · ${amount} ${tCur} → ${(converted).toFixed(2)} ${aCur}`:''}`;
+}
+
 function saveTransaction(){
   const type=document.getElementById('f-type').value;
   const date=document.getElementById('f-date').value;
@@ -2044,31 +2175,37 @@ function saveTransaction(){
   const catSel=document.getElementById('f-cat').value;
   const category=catSel==='__new__'?document.getElementById('new-cat-input').value.trim():catSel;
   const amount=document.getElementById('f-amount').value;
+  const currency=document.getElementById('f-tcur')?.value||db.settings.currency;
   const accountId=document.getElementById('f-account').value;
   if(!category||category==='__new__'||!amount||!date)return alert('Please fill in all fields including a valid category.');
-  if(!accountId){
-    showConfirm({
-      icon:'🏦',
-      title:'No bank account selected',
-      msg:'This transaction won\'t be linked to any account, so your balances won\'t update automatically. Are you sure you want to continue?',
-      confirmLabel:'Save anyway',
-      onConfirm:()=>_commitTransaction({type,date,description,category,amount:+amount,accountId:null})
-    });
-    return;
-  }
-  _commitTransaction({type,date,description,category,amount:+amount,accountId});
+  if(!accountId) return alert('Please select a bank account. All transactions must be linked to an account.');
+  _commitTransaction({type,date,description,category,amount:+amount,currency,accountId});
 }
 
-function _commitTransaction({type,date,description,category,amount,accountId}){
-  const t={id:uid(),type,date,description,category,amount,accountId:accountId||null};
-  db.transactions.push(t);
+function _commitTransaction({type,date,description,category,amount,currency,accountId}){
+  const tCur=currency||db.settings.currency;
+  let convertedAmount=amount, convertedCurrency=tCur, fxRateUsed=1;
   if(accountId){
     const acc=db.accounts.find(a=>a.id===accountId);
     if(acc){
-      acc.balance=Math.round(((+acc.balance||0)+(type==='income'?amount:-amount))*100)/100;
+      const aCur=acc.currency||db.settings.currency;
+      if(tCur!==aCur){
+        const result=convertAmount(amount,tCur,aCur);
+        convertedAmount=result.converted;
+        convertedCurrency=aCur;
+        fxRateUsed=result.rate;
+      } else {
+        convertedCurrency=aCur;
+      }
+      acc.balance=Math.round(((+acc.balance||0)+(type==='income'?convertedAmount:-convertedAmount))*100)/100;
       acc.updated=new Date().toLocaleDateString();
     }
   }
+  const t={id:uid(),type,date,description,category,
+    amount,currency:tCur,
+    convertedAmount,convertedCurrency,fxRateUsed,
+    accountId:accountId||null};
+  db.transactions.push(t);
   save();closeModal();
 }
 
@@ -2109,7 +2246,8 @@ function deleteItem(collection, id){
       if(collection==='transactions' && item && item.accountId){
         const acc=db.accounts.find(a=>a.id===item.accountId);
         if(acc){
-          acc.balance=Math.round(((+acc.balance||0)-(item.type==='income'?+item.amount:-+item.amount))*100)/100;
+          const amt = item.convertedAmount ?? item.amount;
+          acc.balance=Math.round(((+acc.balance||0)-(item.type==='income'?+amt:-+amt))*100)/100;
           acc.updated=new Date().toLocaleDateString();
         }
       }
@@ -2182,18 +2320,29 @@ async function fetchCryptoPrices(){
 function exportData(){
   const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=`vault-backup-${new Date().toISOString().split('T')[0]}.json`;a.click();
+  a.download=`vault-backup-v${APP_VERSION}-${new Date().toISOString().split('T')[0]}.json`;a.click();
 }
 function importData(e){
   const file=e.target.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=ev=>{try{db=JSON.parse(ev.target.result);save();alert('Imported!');}catch(err){alert('Invalid file.');}};
+  reader.onload=ev=>{
+    try{
+      let parsed=JSON.parse(ev.target.result);
+      parsed=migrate(parsed);
+      db={...db,...parsed};
+      if(!db.settings.categories){db.settings.categories={income:[...DEFAULT_CATEGORIES.income],expense:[...DEFAULT_CATEGORIES.expense]};}
+      db.schemaVersion=SCHEMA_VERSION;
+      save();
+      showConfirm({icon:'✅',title:'Import successful',msg:'Your backup has been restored and migrated to the latest version.',confirmLabel:'Great',onConfirm:()=>{}});
+    }catch(err){alert('Invalid backup file. Please use a vault-backup JSON file.');}
+  };
   reader.readAsText(file);
 }
 function clearAllData(){
-  if(!confirm('This will permanently delete ALL your data. Are you sure?'))return;
-  db={accounts:[],stocks:[],crypto:[],transactions:[],settings:{currency:'COP',fxRate:4200}};
-  save();alert('Cleared.');
+  showConfirm({icon:'⚠️',title:'Delete all data?',msg:'This will permanently delete ALL your data including accounts, transactions, and investments. This cannot be undone.',confirmLabel:'Delete everything',onConfirm:()=>{
+    db={schemaVersion:SCHEMA_VERSION,accounts:[],stocks:[],crypto:[],transactions:[],settings:{currency:'COP',fxRate:4200,categories:{income:[...DEFAULT_CATEGORIES.income],expense:[...DEFAULT_CATEGORIES.expense]},currencyLabel:'off'}};
+    save();
+  }});
 }
 
 // ─── GOOGLE DRIVE SYNC ────────────────────────────────────────────────────────
