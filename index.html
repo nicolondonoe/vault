@@ -124,6 +124,15 @@
   .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
   /* Misc */
   .empty-state{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px;}
+  /* ── WELCOME BANNER ── */
+  .welcome-banner{background:linear-gradient(135deg,rgba(124,109,250,0.12),rgba(109,190,250,0.08));border:1px solid rgba(124,109,250,0.25);border-radius:14px;padding:24px 28px;margin-bottom:24px;display:flex;align-items:center;gap:20px;}
+  .welcome-banner-icon{font-size:32px;flex-shrink:0;}
+  .welcome-banner-body{flex:1;}
+  .welcome-banner-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:6px;}
+  .welcome-banner-sub{font-size:13px;color:var(--muted);line-height:1.5;}
+  .welcome-banner-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+  .welcome-banner-dismiss{background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;align-self:flex-start;line-height:1;}
+  @media(max-width:600px){.welcome-banner{flex-wrap:wrap;padding:18px;}.welcome-banner-icon{font-size:26px;}}
   .empty-icon{font-size:32px;margin-bottom:12px;}
   .price-cell{display:flex;align-items:center;gap:6px;}
   .price-display{cursor:pointer;border-bottom:1px dashed var(--border);padding-bottom:1px;transition:border-color 0.15s;}
@@ -363,7 +372,7 @@
       <span class="theme-toggle-icon" id="theme-icon">☀</span>
       <span id="theme-label">Light Mode</span>
     </button>
-    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.7.2</span></div>
+    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.7.3</span></div>
     <div class="sync-bar">
       <button class="sync-btn" id="sync-btn" onclick="handleSyncClick()">
         <span id="sync-btn-icon">☁</span>
@@ -385,6 +394,20 @@
       <div class="page-header">
         <div><div class="page-title">Dashboard</div><div class="page-sub" id="dashboard-date"></div></div>
         <div class="tf-bar" id="dash-tf"></div>
+      </div>
+      <div id="welcome-banner" style="display:none">
+        <div class="welcome-banner">
+          <div class="welcome-banner-icon">☁️</div>
+          <div class="welcome-banner-body">
+            <div class="welcome-banner-title">Back up your data to Google Drive</div>
+            <div class="welcome-banner-sub">Connect once per session to keep your finances safe. Your data stays on your device — Drive is just a backup.</div>
+            <div class="welcome-banner-actions">
+              <button class="btn" onclick="dismissWelcome(true)">Connect Google Drive</button>
+              <button class="btn secondary" onclick="dismissWelcome(false)">Maybe later</button>
+            </div>
+          </div>
+          <button class="welcome-banner-dismiss" onclick="dismissWelcome(false)" title="Dismiss">✕</button>
+        </div>
       </div>
       <!-- Tab switcher -->
       <div class="dash-tabs">
@@ -576,7 +599,7 @@
         <div class="settings-section-title">Data</div>
         <div class="settings-row" style="opacity:0.5;pointer-events:none;">
           <div><div class="settings-row-label">App Version</div><div class="settings-row-sub">Schema v7</div></div>
-          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.7.2</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.7.3</span>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Export Backup</div><div class="settings-row-sub">Download all data as JSON</div></div>
@@ -648,7 +671,7 @@ const CRYPTO_LIST = [
 // ─── DB ───────────────────────────────────────────────────────────────────────
 const DB_KEY = 'vault_data_v3';
 const SCHEMA_VERSION = 7;
-const APP_VERSION = '0.7.2';
+const APP_VERSION = '0.7.3';
 const SUPPORTED_CURRENCIES = ['COP','USD','EUR'];
 
 const DEFAULT_CATEGORIES = {
@@ -2386,6 +2409,22 @@ function silentRefresh() {
   tokenClient.requestAccessToken({ prompt: '', login_hint: hint });
 }
 
+// ─── WELCOME BANNER ──────────────────────────────────────────────────────────
+function showWelcomeBanner() {
+  // Only show if: never dismissed before AND user isn't already connected
+  if (localStorage.getItem('vault_welcomed')) return;
+  if (gToken) return;
+  const banner = document.getElementById('welcome-banner');
+  if (banner) banner.style.display = 'block';
+}
+
+function dismissWelcome(connectNow) {
+  localStorage.setItem('vault_welcomed', '1');
+  const banner = document.getElementById('welcome-banner');
+  if (banner) banner.style.display = 'none';
+  if (connectNow) handleSyncClick();
+}
+
 function initGoogleAuth() {
   if (!window.google) { setTimeout(initGoogleAuth, 500); return; }
 
@@ -2432,6 +2471,10 @@ function initGoogleAuth() {
       scheduleTokenRefresh(expiresInMs);
 
       updateSyncUI(true);
+      // Hide welcome banner if it was showing
+      localStorage.setItem('vault_welcomed', '1');
+      const wb = document.getElementById('welcome-banner');
+      if (wb) wb.style.display = 'none';
       if (isFirstConnect) {
         setSyncStatus('Connected ✓', 'ok');
         await pullFromDrive();
@@ -2586,7 +2629,6 @@ async function pullFromDrive() {
       headers: { 'Authorization': 'Bearer ' + gToken }
     });
     if (res.status === 404) {
-      // File doesn't exist yet — push local data
       await syncToDrive();
       setSyncStatus('✓ First sync done', 'ok');
       return;
@@ -2598,15 +2640,68 @@ async function pullFromDrive() {
       setSyncStatus('✓ Initialized Drive file', 'ok');
       return;
     }
+
     const remote = JSON.parse(text);
-    const liveFxRate = db.settings?.fxRate; // preserve freshly fetched rate
-    db = { ...db, ...remote };
-    if (!db.settings) db.settings = { currency: 'COP', fxRate: 4200 };
-    if (liveFxRate) db.settings.fxRate = liveFxRate; // don't let stale Drive value win
+    const local = db;
+    const liveFxRate = local.settings?.fxRate;
+
+    // ── SMART MERGE ──────────────────────────────────────────────────────────
+    // Merge collections by ID — union both sides, newer modifiedAt wins on conflict
+    function mergeCollection(localArr, remoteArr) {
+      const map = {};
+      // Index local items first
+      (localArr || []).forEach(item => { map[item.id] = item; });
+      // Merge remote items
+      (remoteArr || []).forEach(item => {
+        if (!map[item.id]) {
+          // Remote-only item — add it
+          map[item.id] = item;
+        } else {
+          // Conflict — pick newer by modifiedAt, fall back to remote if neither has it
+          const localTs = map[item.id].modifiedAt || '0';
+          const remoteTs = item.modifiedAt || '0';
+          if (remoteTs > localTs) map[item.id] = item;
+          // else keep local
+        }
+      });
+      return Object.values(map);
+    }
+
+    // Merge settings: pick whichever was saved more recently
+    let mergedSettings = local.settings;
+    const localSettingsTs = local.modifiedAt || '0';
+    const remoteSettingsTs = remote.modifiedAt || '0';
+    if (remoteSettingsTs > localSettingsTs) {
+      // Remote settings are newer — use them but keep live FX rate
+      mergedSettings = { ...remote.settings };
+    }
+    if (liveFxRate) mergedSettings.fxRate = liveFxRate;
+
+    // Ensure required settings fields exist
+    if (!mergedSettings.categories) mergedSettings.categories = {
+      income: [...DEFAULT_CATEGORIES.income],
+      expense: [...DEFAULT_CATEGORIES.expense]
+    };
+    if (!mergedSettings.currencyLabel) mergedSettings.currencyLabel = 'off';
+
+    db = {
+      ...db,
+      schemaVersion: SCHEMA_VERSION,
+      modifiedAt: new Date().toISOString(),
+      accounts:     mergeCollection(local.accounts,     remote.accounts),
+      transactions: mergeCollection(local.transactions, remote.transactions),
+      stocks:       mergeCollection(local.stocks,       remote.stocks),
+      crypto:       mergeCollection(local.crypto,       remote.crypto),
+      settings:     mergedSettings,
+    };
+    // ── END MERGE ─────────────────────────────────────────────────────────────
+
     localStorage.setItem(DB_KEY, JSON.stringify(db));
+    // Push merged result back to Drive so both sides are in sync
+    await syncToDrive();
     refreshAll();
     updateSettingsUI();
-    setSyncStatus('✓ Loaded from Drive', 'ok');
+    setSyncStatus('✓ Synced', 'ok');
     setTimeout(() => setSyncStatus('Connected ✓', 'ok'), 3000);
   } catch(e) {
     if (e.message.includes('404') || e.message.includes('not found')) {
@@ -2620,6 +2715,7 @@ async function pullFromDrive() {
 // Override save() to also sync to Drive after local save
 const _localSave = save;
 function save() {
+  db.modifiedAt = new Date().toISOString(); // timestamp every write for merge tiebreaking
   localStorage.setItem(DB_KEY, JSON.stringify(db));
   refreshAll();
   if (gToken) {
@@ -2790,6 +2886,8 @@ if (db.settings.currency !== 'USD') {
     refreshAll();
   });
 }
+// Show welcome banner on first ever load (slight delay so UI is ready)
+setTimeout(showWelcomeBanner, 800);
 // Rebuild charts on orientation/resize so legend positions update (mobile ↔ desktop)
 let _resizeTimer;
 window.addEventListener('resize', () => {
