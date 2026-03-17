@@ -372,7 +372,7 @@
       <span class="theme-toggle-icon" id="theme-icon">☀</span>
       <span id="theme-label">Light Mode</span>
     </button>
-    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.7.3</span></div>
+    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.7.4</span></div>
     <div class="sync-bar">
       <button class="sync-btn" id="sync-btn" onclick="handleSyncClick()">
         <span id="sync-btn-icon">☁</span>
@@ -599,7 +599,7 @@
         <div class="settings-section-title">Data</div>
         <div class="settings-row" style="opacity:0.5;pointer-events:none;">
           <div><div class="settings-row-label">App Version</div><div class="settings-row-sub">Schema v7</div></div>
-          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.7.3</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.7.4</span>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Export Backup</div><div class="settings-row-sub">Download all data as JSON</div></div>
@@ -670,15 +670,15 @@ const CRYPTO_LIST = [
 
 // ─── DB ───────────────────────────────────────────────────────────────────────
 const DB_KEY = 'vault_data_v3';
-const SCHEMA_VERSION = 7;
-const APP_VERSION = '0.7.3';
+const SCHEMA_VERSION = 8;
+const APP_VERSION = '0.8.0';
 const SUPPORTED_CURRENCIES = ['COP','USD','EUR'];
 
 const DEFAULT_CATEGORIES = {
   income: ['Salary','Freelance','Interest','Dividends','Rental Income','Gift','Refund','Other Income'],
   expense: ['Housing','Food','Transport','Utilities','Healthcare','Education','Entertainment','Shopping','Travel','Subscriptions','Insurance','Personal Care','Debt Payment','Other Expense']
 };
-let db = {schemaVersion:SCHEMA_VERSION,accounts:[],stocks:[],crypto:[],transactions:[],settings:{currency:'COP',fxRate:4200,categories:{income:[...DEFAULT_CATEGORIES.income],expense:[...DEFAULT_CATEGORIES.expense]},currencyLabel:'off'}};
+let db = {schemaVersion:SCHEMA_VERSION,accounts:[],stocks:[],crypto:[],transactions:[],networthHistory:[],settings:{currency:'COP',fxRate:4200,categories:{income:[...DEFAULT_CATEGORIES.income],expense:[...DEFAULT_CATEGORIES.expense]},currencyLabel:'off'}};
 
 // ─── MIGRATION ────────────────────────────────────────────────────────────────
 function migrate(data){
@@ -697,6 +697,10 @@ function migrate(data){
       if(!t.fxRateUsed) t.fxRateUsed = 1;
     });
     data.schemaVersion = 7;
+  }
+  if((data.schemaVersion || 0) < 8){
+    if(!data.networthHistory) data.networthHistory = [];
+    data.schemaVersion = 8;
   }
   return data;
 }
@@ -748,16 +752,16 @@ function convertAmount(amount, fromCur, toCur){
 }
 
 // ─── TIMEFRAMES ───────────────────────────────────────────────────────────────
-// tf: '1M','3M','6M','1Y','ALL'
+// tf: '1W','1M','3M','6M','1Y','ALL'
 let activeTF = {dashboard:'1Y', stocks:'1Y', crypto:'1Y', cashflow:'6M'};
 
-const TF_OPTIONS = ['1M','3M','6M','1Y','ALL'];
+const TF_OPTIONS      = ['1M','3M','6M','1Y','ALL'];
+const DASH_TF_OPTIONS = ['1W','1M','3M','6M','1Y','ALL'];
 
 function tfCutoff(tf){
   const now = new Date();
   if(tf==='ALL') return new Date('2000-01-01');
-  const m = {M1:1,M3:3,M6:6,Y1:12}[tf.replace(/(\d+)([MY])/,'$2$1')] || 12;
-  // parse manually
+  if(tf==='1W')  return new Date(now.getFullYear(), now.getMonth(), now.getDate()-7);
   const months = tf==='1M'?1:tf==='3M'?3:tf==='6M'?6:tf==='1Y'?12:0;
   if(!months) return new Date('2000-01-01');
   return new Date(now.getFullYear(), now.getMonth()-months, now.getDate());
@@ -766,7 +770,8 @@ function tfCutoff(tf){
 function buildTfBar(containerId, section){
   const el = document.getElementById(containerId);
   if(!el) return;
-  el.innerHTML = TF_OPTIONS.map(tf=>`<button class="tf-btn ${activeTF[section]===tf?'active':''}" onclick="setTF('${section}','${tf}')">${tf}</button>`).join('');
+  const opts = section==='dashboard' ? DASH_TF_OPTIONS : TF_OPTIONS;
+  el.innerHTML = opts.map(tf=>`<button class="tf-btn ${activeTF[section]===tf?'active':''}" onclick="setTF('${section}','${tf}')">${tf}</button>`).join('');
 }
 
 function setTF(section, tf){
@@ -1063,6 +1068,38 @@ function calcNetWorth(){
   const stocks=db.stocks.reduce((s,h)=>s+((+h.shares||0)*(+h.currentPrice||0)),0)*fxRate;
   const crypto=db.crypto.reduce((s,h)=>s+(+h.currentValueUSD||0),0)*fxRate;
   return cash+stocks+crypto;
+}
+
+// ─── NET WORTH SNAPSHOT SYSTEM ────────────────────────────────────────────────
+function todayStr(){
+  return new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
+}
+
+function recordSnapshot(){
+  if(!db.networthHistory) db.networthHistory = [];
+  const today = todayStr();
+  const nw = calcNetWorth();
+  const existing = db.networthHistory.findIndex(s => s.date === today);
+  if(existing >= 0){
+    db.networthHistory[existing].value = nw; // overwrite today's entry
+  } else {
+    db.networthHistory.push({date: today, value: nw});
+  }
+  // Keep sorted by date ascending
+  db.networthHistory.sort((a,b) => a.date.localeCompare(b.date));
+  // Cap history at 1000 entries (~2.7 years of daily snapshots)
+  if(db.networthHistory.length > 1000){
+    db.networthHistory = db.networthHistory.slice(-1000);
+  }
+}
+
+// Adjust all snapshots on or after a given date by a delta amount (in display currency)
+// Used when adding/deleting past-dated transactions or investments
+function backfillSnapshots(fromDate, delta){
+  if(!db.networthHistory) return;
+  db.networthHistory.forEach(s => {
+    if(s.date >= fromDate) s.value += delta;
+  });
 }
 
 // ─── REFRESH ──────────────────────────────────────────────────────────────────
@@ -2247,6 +2284,12 @@ function _commitTransaction({type,date,description,category,amount,currency,acco
     convertedAmount,convertedCurrency,fxRateUsed,
     accountId:accountId||null};
   db.transactions.push(t);
+  // Backfill past snapshots if transaction is dated before today
+  if(date < todayStr()){
+    const dispAmt = toDisplay(convertedAmount, convertedCurrency);
+    const delta = type==='income' ? dispAmt : -dispAmt;
+    backfillSnapshots(date, delta);
+  }
   save();closeModal();
 }
 
@@ -2642,42 +2685,44 @@ async function pullFromDrive() {
     }
 
     const remote = JSON.parse(text);
-    const local = db;
+    const local = JSON.parse(JSON.stringify(db)); // deep copy — prevent reference mutation during merge
     const liveFxRate = local.settings?.fxRate;
 
     // ── SMART MERGE ──────────────────────────────────────────────────────────
     // Merge collections by ID — union both sides, newer modifiedAt wins on conflict
     function mergeCollection(localArr, remoteArr) {
       const map = {};
-      // Index local items first
       (localArr || []).forEach(item => { map[item.id] = item; });
-      // Merge remote items
       (remoteArr || []).forEach(item => {
         if (!map[item.id]) {
-          // Remote-only item — add it
           map[item.id] = item;
         } else {
-          // Conflict — pick newer by modifiedAt, fall back to remote if neither has it
           const localTs = map[item.id].modifiedAt || '0';
           const remoteTs = item.modifiedAt || '0';
           if (remoteTs > localTs) map[item.id] = item;
-          // else keep local
         }
       });
       return Object.values(map);
     }
 
+    // Merge networthHistory — union by date, higher value wins on same date
+    function mergeHistory(localArr, remoteArr) {
+      const map = {};
+      (localArr || []).forEach(s => { map[s.date] = s; });
+      (remoteArr || []).forEach(s => {
+        if (!map[s.date] || s.value > map[s.date].value) map[s.date] = s;
+      });
+      return Object.values(map).sort((a,b) => a.date.localeCompare(b.date));
+    }
+
     // Merge settings: pick whichever was saved more recently
-    let mergedSettings = local.settings;
+    let mergedSettings = { ...local.settings };
     const localSettingsTs = local.modifiedAt || '0';
     const remoteSettingsTs = remote.modifiedAt || '0';
     if (remoteSettingsTs > localSettingsTs) {
-      // Remote settings are newer — use them but keep live FX rate
       mergedSettings = { ...remote.settings };
     }
     if (liveFxRate) mergedSettings.fxRate = liveFxRate;
-
-    // Ensure required settings fields exist
     if (!mergedSettings.categories) mergedSettings.categories = {
       income: [...DEFAULT_CATEGORIES.income],
       expense: [...DEFAULT_CATEGORIES.expense]
@@ -2685,14 +2730,14 @@ async function pullFromDrive() {
     if (!mergedSettings.currencyLabel) mergedSettings.currencyLabel = 'off';
 
     db = {
-      ...db,
       schemaVersion: SCHEMA_VERSION,
       modifiedAt: new Date().toISOString(),
-      accounts:     mergeCollection(local.accounts,     remote.accounts),
-      transactions: mergeCollection(local.transactions, remote.transactions),
-      stocks:       mergeCollection(local.stocks,       remote.stocks),
-      crypto:       mergeCollection(local.crypto,       remote.crypto),
-      settings:     mergedSettings,
+      accounts:        mergeCollection(local.accounts,        remote.accounts),
+      transactions:    mergeCollection(local.transactions,    remote.transactions),
+      stocks:          mergeCollection(local.stocks,          remote.stocks),
+      crypto:          mergeCollection(local.crypto,          remote.crypto),
+      networthHistory: mergeHistory(local.networthHistory,    remote.networthHistory),
+      settings:        mergedSettings,
     };
     // ── END MERGE ─────────────────────────────────────────────────────────────
 
@@ -2715,12 +2760,13 @@ async function pullFromDrive() {
 // Override save() to also sync to Drive after local save
 const _localSave = save;
 function save() {
-  db.modifiedAt = new Date().toISOString(); // timestamp every write for merge tiebreaking
+  recordSnapshot(); // record net worth before writing
+  db.modifiedAt = new Date().toISOString();
   localStorage.setItem(DB_KEY, JSON.stringify(db));
   refreshAll();
   if (gToken) {
     clearTimeout(save._driveTimer);
-    save._driveTimer = setTimeout(() => syncToDrive(), 1500); // debounce 1.5s
+    save._driveTimer = setTimeout(() => syncToDrive(), 1500);
   }
 }
 
