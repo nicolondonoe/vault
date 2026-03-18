@@ -71,6 +71,7 @@
   .stat-change.up{color:var(--green);}.stat-change.down{color:var(--danger);}
   /* Charts */
   .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;}
+  .chart-grid.collapsed{display:none;margin-bottom:0;}
   .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;min-width:0;}
   .chart-card.wide{grid-column:1/-1;}
   .chart-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text);}
@@ -78,8 +79,17 @@
   /* Data cards */
   .data-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
   .data-card-inner{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .data-card-inner.scrollable{overflow-y:auto;max-height:420px;}
+  .data-card-inner.scrollable thead th{position:sticky;top:0;z-index:2;background:var(--surface);}
   .data-card-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;}
   .data-card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;}
+  /* Chart collapse toggle */
+  .chart-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .chart-toggle-btn{background:none;border:1px solid var(--border);border-radius:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);transition:transform 0.25s ease,color 0.2s;padding:0;flex-shrink:0;transform:rotate(90deg);}
+  .chart-toggle-btn:hover{color:var(--text);border-color:var(--text);}
+  .chart-toggle-btn.collapsed{transform:rotate(0deg);}
+  .chart-toggle-btn svg{display:block;}
+  .chart-grid.collapsed{display:none;margin-bottom:0;}
   .header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   /* Buttons */
   .btn{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;transition:opacity 0.15s;letter-spacing:0.3px;}
@@ -377,7 +387,7 @@
       <span class="theme-toggle-icon" id="theme-icon">☀</span>
       <span id="theme-label">Light Mode</span>
     </button>
-    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.8.0</span></div>
+    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.8.1</span></div>
     <div class="sync-bar">
       <button class="sync-btn" id="sync-btn" onclick="handleSyncClick()">
         <span id="sync-btn-icon">☁</span>
@@ -423,7 +433,8 @@
       <div class="dash-view active" id="dash-view-overview">
         <div id="fx-bar-dash" class="fx-bar" style="display:none"></div>
         <div class="stat-grid" id="dash-stats"></div>
-        <div class="chart-grid">
+        <div class="chart-section-header"><span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Charts</span><button id="btn-toggle-dash" class="chart-toggle-btn" onclick="toggleCharts('dash-chart-grid','btn-toggle-dash')" title="Toggle charts"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,1 7,5 3,9"/></svg></button></div>
+        <div class="chart-grid" id="dash-chart-grid">
           <div class="chart-card"><div class="chart-title">Portfolio Allocation</div><div class="chart-wrap"><canvas id="chart-allocation"></canvas></div></div>
           <div class="chart-card"><div class="chart-title">Asset Distribution</div><div class="chart-wrap"><canvas id="chart-assets"></canvas></div></div>
           <div class="chart-card wide"><div class="chart-title">Net Worth Over Time</div><div class="chart-wrap tall"><canvas id="chart-networth"></canvas></div></div>
@@ -439,8 +450,11 @@
     <div id="page-accounts" class="page">
       <div class="page-header"><div><div class="page-title">Bank Accounts</div><div class="page-sub">Track your cash across all accounts</div></div></div>
       <div class="stat-grid" id="accounts-stats"></div>
-      <div class="chart-grid" id="accounts-chart-grid" style="display:none">
-        <div class="chart-card"><div class="chart-title">Balance Distribution</div><div class="chart-wrap"><canvas id="chart-accounts-dist"></canvas></div></div>
+      <div id="accounts-chart-section" style="display:none">
+        <div class="chart-section-header"><span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Charts</span><button id="btn-toggle-accounts" class="chart-toggle-btn" onclick="toggleCharts('accounts-chart-grid','btn-toggle-accounts')" title="Toggle charts"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,1 7,5 3,9"/></svg></button></div>
+        <div class="chart-grid" id="accounts-chart-grid">
+          <div class="chart-card"><div class="chart-title">Balance Distribution</div><div class="chart-wrap"><canvas id="chart-accounts-dist"></canvas></div></div>
+        </div>
       </div>
       <div class="data-card">
         <div class="data-card-header">
@@ -462,7 +476,8 @@
       <div id="fx-bar-stocks" class="fx-bar" style="display:none"></div>
       <div class="stat-grid" id="stocks-stats"></div>
       <!-- Charts -->
-      <div class="chart-grid">
+      <div class="chart-section-header"><span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Charts</span><button id="btn-toggle-stocks" class="chart-toggle-btn" onclick="toggleCharts('stocks-chart-grid','btn-toggle-stocks')" title="Toggle charts"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,1 7,5 3,9"/></svg></button></div>
+      <div class="chart-grid" id="stocks-chart-grid">
         <div class="chart-card wide"><div class="chart-title">Portfolio Value Over Time</div><div class="chart-wrap tall"><canvas id="chart-stocks-timeline"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Holdings Breakdown</div><div class="chart-wrap"><canvas id="chart-stocks-pie"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Gain / Loss by Holding</div><div class="chart-wrap"><canvas id="chart-stocks-gainloss"></canvas></div></div>
@@ -491,7 +506,8 @@
       <div id="fx-bar-crypto" class="fx-bar" style="display:none"></div>
       <div class="stat-grid" id="crypto-stats"></div>
       <!-- Charts -->
-      <div class="chart-grid">
+      <div class="chart-section-header"><span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Charts</span><button id="btn-toggle-crypto" class="chart-toggle-btn" onclick="toggleCharts('crypto-chart-grid','btn-toggle-crypto')" title="Toggle charts"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,1 7,5 3,9"/></svg></button></div>
+      <div class="chart-grid" id="crypto-chart-grid">
         <div class="chart-card wide"><div class="chart-title">Portfolio Value Over Time</div><div class="chart-wrap tall"><canvas id="chart-crypto-timeline"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Holdings Breakdown</div><div class="chart-wrap"><canvas id="chart-crypto-pie"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Gain / Loss by Asset</div><div class="chart-wrap"><canvas id="chart-crypto-gainloss"></canvas></div></div>
@@ -518,7 +534,8 @@
         <div class="tf-bar" id="cf-tf"></div>
       </div>
       <div class="stat-grid" id="cashflow-stats"></div>
-      <div class="chart-grid">
+      <div class="chart-section-header"><span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Charts</span><button id="btn-toggle-cf" class="chart-toggle-btn" onclick="toggleCharts('cf-chart-grid','btn-toggle-cf')" title="Toggle charts"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,1 7,5 3,9"/></svg></button></div>
+      <div class="chart-grid" id="cf-chart-grid">
         <div class="chart-card wide"><div class="chart-title">Monthly Cash Flow</div><div class="chart-wrap tall"><canvas id="chart-cashflow"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Expense Breakdown</div><div class="chart-wrap"><canvas id="chart-expenses"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Income vs Expenses</div><div class="chart-wrap"><canvas id="chart-incvexp"></canvas></div></div>
@@ -535,7 +552,7 @@
             <button class="btn" onclick="openModal('transaction')">+ Add Transaction</button>
           </div>
         </div>
-        <div class="data-card-inner"><table><thead><tr id="cf-thead"></tr></thead>
+        <div class="data-card-inner scrollable"><table><thead><tr id="cf-thead"></tr></thead>
         <tbody id="cashflow-table"></tbody></table>
         </div><div id="cashflow-empty" class="empty-state" style="display:none"><div class="empty-icon">💸</div>No transactions yet.</div>
       </div>
@@ -611,7 +628,7 @@
         <div class="settings-section-title">Data</div>
         <div class="settings-row" style="opacity:0.5;pointer-events:none;">
           <div><div class="settings-row-label">App Version</div><div class="settings-row-sub">Schema v7</div></div>
-          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.8.0</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.8.1</span>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Export Backup</div><div class="settings-row-sub">Download all data as JSON</div></div>
@@ -683,7 +700,7 @@ const CRYPTO_LIST = [
 // ─── DB ───────────────────────────────────────────────────────────────────────
 const DB_KEY = 'vault_data_v3';
 const SCHEMA_VERSION = 8;
-const APP_VERSION = '0.8.0';
+const APP_VERSION = '0.8.1';
 const SUPPORTED_CURRENCIES = ['COP','USD','EUR'];
 
 const DEFAULT_CATEGORIES = {
@@ -1207,6 +1224,33 @@ function backfillSnapshots(fromDate, delta){
 }
 
 // ─── REFRESH ──────────────────────────────────────────────────────────────────
+// ─── CHART TOGGLE ─────────────────────────────────────────────────────────────
+const _chartCollapsed = {}; // { gridId: bool }
+
+function toggleCharts(gridId, btnId){
+  _chartCollapsed[gridId] = !_chartCollapsed[gridId];
+  const grid = document.getElementById(gridId);
+  const btn  = document.getElementById(btnId);
+  if(!grid || !btn) return;
+  if(_chartCollapsed[gridId]){
+    grid.classList.add('collapsed');
+    btn.classList.add('collapsed');
+  } else {
+    grid.classList.remove('collapsed');
+    btn.classList.remove('collapsed');
+    // Rebuild charts after expand so canvas sizes are correct
+    refreshAll();
+  }
+}
+
+function chartToggleBtn(gridId, btnId){
+  return `<button id="${btnId}" class="chart-toggle-btn" onclick="toggleCharts('${gridId}','${btnId}')" title="Toggle charts">
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3,1 7,5 3,9"/>
+    </svg>
+  </button>`;
+}
+
 function refreshAll(){
   showFxBars();
   buildTfBar('dash-tf','dashboard');
@@ -1452,10 +1496,10 @@ function buildInsights(){
 function buildAccountsDistChart(){
   destroyChart('accounts-dist');
   const ctx=document.getElementById('chart-accounts-dist');if(!ctx)return;
-  const grid=document.getElementById('accounts-chart-grid');
+  const section=document.getElementById('accounts-chart-section');
   const visible=db.accounts.filter(a=>(+a.balance||0)>0);
-  if(visible.length<2){if(grid)grid.style.display='none';return;}
-  if(grid)grid.style.display='';
+  if(visible.length<2){if(section)section.style.display='none';return;}
+  if(section)section.style.display='';
   const labels=visible.map(a=>a.name);
   const data=visible.map(a=>toDisplay(+a.balance||0, a.currency||db.settings.currency));
   const colors=visible.map((_,i)=>PAL[i%PAL.length]);
