@@ -377,7 +377,7 @@
       <span class="theme-toggle-icon" id="theme-icon">☀</span>
       <span id="theme-label">Light Mode</span>
     </button>
-    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.7.7</span></div>
+    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.7.8</span></div>
     <div class="sync-bar">
       <button class="sync-btn" id="sync-btn" onclick="handleSyncClick()">
         <span id="sync-btn-icon">☁</span>
@@ -526,7 +526,14 @@
       <div class="data-card">
         <div class="data-card-header">
           <div class="data-card-title">Transactions</div>
-          <button class="btn" onclick="openModal('transaction')">+ Add Transaction</button>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <div style="position:relative;">
+              <input id="cf-search" class="form-input" type="text" placeholder="Search descriptions…" oninput="renderCashFlowTable()" style="padding:7px 12px 7px 32px;font-size:12px;width:200px;height:34px;">
+              <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none;line-height:1;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+              <button id="cf-search-clear" onclick="clearCfSearch()" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:0;">✕</button>
+            </div>
+            <button class="btn" onclick="openModal('transaction')">+ Add Transaction</button>
+          </div>
         </div>
         <div class="data-card-inner"><table><thead><tr id="cf-thead"></tr></thead>
         <tbody id="cashflow-table"></tbody></table>
@@ -604,7 +611,7 @@
         <div class="settings-section-title">Data</div>
         <div class="settings-row" style="opacity:0.5;pointer-events:none;">
           <div><div class="settings-row-label">App Version</div><div class="settings-row-sub">Schema v7</div></div>
-          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.7.7</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.7.8</span>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Export Backup</div><div class="settings-row-sub">Download all data as JSON</div></div>
@@ -781,6 +788,12 @@ function buildTfBar(containerId, section){
 
 function setTF(section, tf){
   activeTF[section]=tf;
+  if(section==='cashflow'){
+    const inp=document.getElementById('cf-search');
+    if(inp) inp.value='';
+    const clr=document.getElementById('cf-search-clear');
+    if(clr) clr.style.display='none';
+  }
   refreshAll();
 }
 
@@ -1607,21 +1620,44 @@ function refreshCashFlow(){
   renderCashFlowTable();
 }
 
+function clearCfSearch(){
+  const inp = document.getElementById('cf-search');
+  if(inp) inp.value = '';
+  renderCashFlowTable();
+}
+
 function renderCashFlowTable(){
   const tbody=document.getElementById('cashflow-table');if(!tbody)return;
   const empty=document.getElementById('cashflow-empty');
   const tf=activeTF.cashflow;const cutoff=tfCutoff(tf);
-  const filtered=db.transactions.filter(t=>new Date(t.date)>=cutoff);
+  let filtered=db.transactions.filter(t=>new Date(t.date)>=cutoff);
+
+  // Apply search filter
+  const searchEl=document.getElementById('cf-search');
+  const q=(searchEl?.value||'').trim().toLowerCase();
+  const clearBtn=document.getElementById('cf-search-clear');
+  if(clearBtn) clearBtn.style.display=q?'block':'none';
+  if(q) filtered=filtered.filter(t=>(t.description||'').toLowerCase().includes(q));
+
   const txDisplay=t=>toDisplay(+t.amount||0, t.currency||db.settings.currency);
   buildCfHeaders();
   if(!db.transactions.length){tbody.innerHTML='';empty.style.display='block';return;}
   empty.style.display='none';
+  if(!filtered.length){
+    tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">No transactions match "${q}"</td></tr>`;
+    return;
+  }
   const sorted=sortTransactions(filtered);
   const dispCur=db.settings.currency;
   tbody.innerHTML=sorted.map(t=>{
     const acc=t.accountId?db.accounts.find(a=>a.id===t.accountId):null;
     const tCur=t.currency||db.settings.currency;
     const wasConverted=tCur!==dispCur;
+    // Highlight matching text in description
+    const desc = q
+      ? (t.description||'').replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi'),
+          '<mark style="background:rgba(124,109,250,0.25);color:var(--text);border-radius:2px;padding:0 2px;">$1</mark>')
+      : (t.description||'');
     const amtCell=wasConverted
       ?`<td class="${t.type==='income'?'positive':'negative'}">${t.type==='income'?'+':'-'}${t.amount.toLocaleString()} ${tCur}<div style="font-size:10px;color:var(--muted)">≈ ${fmt(txDisplay(t))}</div></td>`
       :`<td class="${t.type==='income'?'positive':'negative'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</td>`;
@@ -1630,7 +1666,7 @@ function renderCashFlowTable(){
       :`<td style="color:var(--border);font-size:12px">—</td>`;
     return`<tr>
       <td style="color:var(--muted)">${t.date}</td>
-      <td><strong>${t.description}</strong></td>
+      <td><strong>${desc}</strong></td>
       <td style="color:var(--muted)">${t.category}</td>
       <td><span class="badge ${t.type}">${t.type}</span></td>
       ${amtCell}
