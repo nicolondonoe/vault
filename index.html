@@ -377,7 +377,7 @@
       <span class="theme-toggle-icon" id="theme-icon">☀</span>
       <span id="theme-label">Light Mode</span>
     </button>
-    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.7.8</span></div>
+    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.8.0</span></div>
     <div class="sync-bar">
       <button class="sync-btn" id="sync-btn" onclick="handleSyncClick()">
         <span id="sync-btn-icon">☁</span>
@@ -611,7 +611,7 @@
         <div class="settings-section-title">Data</div>
         <div class="settings-row" style="opacity:0.5;pointer-events:none;">
           <div><div class="settings-row-label">App Version</div><div class="settings-row-sub">Schema v7</div></div>
-          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.7.8</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.8.0</span>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Export Backup</div><div class="settings-row-sub">Download all data as JSON</div></div>
@@ -927,48 +927,117 @@ function buildAssetsChart(){
   charts['assets']=new Chart(ctx,{type:'pie',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}}}});
 }
 
-// Generate synthetic monthly data points for a set of holdings
+// Generate timeline data points for a set of holdings
 // holdings: [{purchaseDate, costUSD, currentValueUSD}]
 function generateTimelineData(holdings, tf){
   const now=new Date();
-  const cutoff=tfCutoff(tf);
-  // How many months to show
-  const totalMonths = tf==='1M'?1:tf==='3M'?3:tf==='6M'?6:tf==='1Y'?12:24;
-  const months=[];
-  for(let i=totalMonths;i>=0;i--){
-    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    months.push({date:d,label:d.toLocaleString('default',{month:'short',year:'2-digit'})});
+  let points=[];
+
+  if(tf==='1W'){
+    // Daily points for last 7 days
+    for(let i=6;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);
+      points.push({date:d,label:d.toLocaleString('default',{weekday:'short',month:'short',day:'numeric'})});
+    }
+  } else {
+    const totalMonths=tf==='1M'?1:tf==='3M'?3:tf==='6M'?6:tf==='1Y'?12:24;
+    for(let i=totalMonths;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+      points.push({date:d,label:d.toLocaleString('default',{month:'short',year:'2-digit'})});
+    }
   }
-  // For each month, sum up value of holdings that were purchased before that month
-  // We linearly interpolate cost -> currentValue over time
-  const values=months.map(m=>{
+
+  const values=points.map(p=>{
     let total=0;
     holdings.forEach(h=>{
       const pd=new Date(h.purchaseDate||'2020-01-01');
-      if(pd>m.date)return;// not yet purchased
-      // interpolate: from costUSD at purchase to currentValueUSD now
-      const ageTotal=now-pd;const ageThen=m.date-pd;
+      if(pd>p.date)return;
+      const ageTotal=now-pd;const ageThen=p.date-pd;
       const ratio=ageTotal>0?Math.min(ageThen/ageTotal,1):1;
       const val=h.costUSD+(h.currentValueUSD-h.costUSD)*ratio;
       total+=Math.max(val,0);
     });
     return total;
   });
-  return {labels:months.map(m=>m.label),values};
+  return {labels:points.map(p=>p.label),values};
 }
 
 function buildNetWorthChart(){
   destroyChart('networth');
   const ctx=document.getElementById('chart-networth');if(!ctx)return;
   const tf=activeTF.dashboard;
-  const fxRate=db.settings.currency!=='USD'?getFxRate():1;
-  const stockHoldings=db.stocks.map(h=>({purchaseDate:h.purchaseDate,costUSD:(+h.shares||0)*(+h.avgCost||0),currentValueUSD:(+h.shares||0)*(+h.currentPrice||0)}));
-  const cryptoHoldings=db.crypto.map(h=>({purchaseDate:h.purchaseDate,costUSD:+h.investedUSD||0,currentValueUSD:+h.currentValueUSD||0}));
-  const allHoldings=[...stockHoldings,...cryptoHoldings];
-  const {labels,values}=generateTimelineData(allHoldings,tf);
-  const cash=db.accounts.reduce((s,a)=>s+toDisplay(+a.balance||0, a.currency||db.settings.currency),0);
-  const converted=values.map(v=>v*fxRate+cash);
-  charts['networth']=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Net Worth',data:converted,borderColor:'#7c6dfa',backgroundColor:'rgba(124,109,250,0.08)',borderWidth:2.5,fill:true,tension:0.4,pointBackgroundColor:'#7c6dfa',pointRadius:3,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  const cutoff=tfCutoff(tf);
+  const history=(db.networthHistory||[]).filter(s=>new Date(s.date)>=cutoff);
+
+  // Need at least 1 snapshot
+  if(!history.length){
+    // Show a placeholder with today's value as a single point
+    const nw=calcNetWorth();
+    const today=todayStr();
+    charts['networth']=new Chart(ctx,{type:'line',data:{labels:[today],datasets:[{label:'Net Worth',data:[nw],borderColor:'#7c6dfa',backgroundColor:'rgba(124,109,250,0.08)',borderWidth:2.5,fill:true,pointBackgroundColor:'#7c6dfa',pointRadius:5,pointHoverRadius:7}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.parsed.y)}}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+    return;
+  }
+
+  // Aggregate snapshots based on timeframe granularity
+  // 1W, 1M → daily (use raw snapshots)
+  // 3M, 6M → weekly (last snapshot of each week)
+  // 1Y, ALL → monthly (last snapshot of each month)
+  let points;
+  if(tf==='1W'||tf==='1M'){
+    // Daily — use raw snapshots, but fill in missing days with previous value
+    const days=[];
+    const daysN=tf==='1W'?7:31;
+    const now=new Date();
+    for(let i=daysN-1;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);
+      days.push(d.toISOString().split('T')[0]);
+    }
+    // Build a map of existing snapshots
+    const snapMap={};
+    history.forEach(s=>{snapMap[s.date]=s.value;});
+    // Forward-fill missing days with last known value
+    let last=history.length?history[0].value:null;
+    points=days.map(d=>{
+      if(snapMap[d]!==undefined) last=snapMap[d];
+      return{label:d,value:last};
+    }).filter(p=>p.value!==null);
+  } else if(tf==='3M'||tf==='6M'){
+    // Weekly — last snapshot of each ISO week
+    const weekMap={};
+    history.forEach(s=>{
+      const d=new Date(s.date);
+      // ISO week key: year + week number
+      const jan1=new Date(d.getFullYear(),0,1);
+      const week=Math.ceil(((d-jan1)/86400000+jan1.getDay()+1)/7);
+      const key=`${d.getFullYear()}-W${String(week).padStart(2,'0')}`;
+      weekMap[key]=s; // last in iteration wins (sorted asc, so last = newest that week)
+    });
+    points=Object.values(weekMap).map(s=>({
+      label:new Date(s.date).toLocaleString('default',{month:'short',day:'numeric'}),
+      value:s.value
+    }));
+  } else {
+    // Monthly — last snapshot of each month
+    const monthMap={};
+    history.forEach(s=>{
+      const key=s.date.slice(0,7); // YYYY-MM
+      monthMap[key]=s;
+    });
+    points=Object.values(monthMap).map(s=>({
+      label:new Date(s.date).toLocaleString('default',{month:'short',year:'2-digit'}),
+      value:s.value
+    }));
+  }
+
+  if(!points.length) return;
+  const labels=points.map(p=>p.label);
+  const data=points.map(p=>p.value);
+  const first=data[0], last=data[data.length-1];
+  const trending=last>=first;
+  const lineColor=trending?'#6dfabd':'#fa6d6d';
+  const fillColor=trending?'rgba(109,250,189,0.07)':'rgba(250,109,109,0.07)';
+
+  charts['networth']=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'Net Worth',data,borderColor:lineColor,backgroundColor:fillColor,borderWidth:2.5,fill:true,tension:0.4,pointBackgroundColor:lineColor,pointRadius:data.length>60?0:3,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.parsed.y)}}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 function buildStocksTimeline(){
@@ -1047,14 +1116,31 @@ function buildCashFlowChart(){
   destroyChart('cashflow');
   const ctx=document.getElementById('chart-cashflow');if(!ctx)return;
   const tf=activeTF.cashflow;
-  const months_n=tf==='1M'?1:tf==='3M'?3:tf==='6M'?6:tf==='1Y'?12:24;
   const now=new Date();
-  const months=[];
-  for(let i=months_n;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({label:d.toLocaleString('default',{month:'short',year:'2-digit'}),year:d.getFullYear(),month:d.getMonth()});}
   const txDisp=t=>toDisplay(+t.amount||0, t.currency||db.settings.currency);
-  const income=months.map(m=>db.transactions.filter(t=>t.type==='income'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+txDisp(t),0));
-  const expense=months.map(m=>db.transactions.filter(t=>t.type==='expense'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+txDisp(t),0));
-  charts['cashflow']=new Chart(ctx,{type:'bar',data:{labels:months.map(m=>m.label),datasets:[{label:'Income',data:income,backgroundColor:getGreenColor(0.7),borderRadius:6,borderSkipped:false},{label:'Expenses',data:expense,backgroundColor:'rgba(250,109,109,0.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getLegendColor(),font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
+  let labels, income, expense;
+
+  if(tf==='1W'){
+    // Daily points for last 7 days
+    const days=[];
+    for(let i=6;i>=0;i--){
+      const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-i);
+      const iso=d.toISOString().split('T')[0];
+      days.push({label:d.toLocaleString('default',{weekday:'short',month:'short',day:'numeric'}),iso});
+    }
+    labels=days.map(d=>d.label);
+    income=days.map(d=>db.transactions.filter(t=>t.type==='income'&&t.date===d.iso).reduce((s,t)=>s+txDisp(t),0));
+    expense=days.map(d=>db.transactions.filter(t=>t.type==='expense'&&t.date===d.iso).reduce((s,t)=>s+txDisp(t),0));
+  } else {
+    const months_n=tf==='1M'?1:tf==='3M'?3:tf==='6M'?6:tf==='1Y'?12:24;
+    const months=[];
+    for(let i=months_n;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({label:d.toLocaleString('default',{month:'short',year:'2-digit'}),year:d.getFullYear(),month:d.getMonth()});}
+    labels=months.map(m=>m.label);
+    income=months.map(m=>db.transactions.filter(t=>t.type==='income'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+txDisp(t),0));
+    expense=months.map(m=>db.transactions.filter(t=>t.type==='expense'&&new Date(t.date).getMonth()===m.month&&new Date(t.date).getFullYear()===m.year).reduce((s,t)=>s+txDisp(t),0));
+  }
+
+  charts['cashflow']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Income',data:income,backgroundColor:getGreenColor(0.7),borderRadius:6,borderSkipped:false},{label:'Expenses',data:expense,backgroundColor:'rgba(250,109,109,0.7)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getLegendColor(),font:{family:'DM Mono',size:12}}}},scales:{x:{grid:{color:getGridColor()},ticks:getTickStyle()},y:{grid:{color:getGridColor()},ticks:{...getTickStyle(),callback:v=>getCurrencySymbol()+v.toLocaleString()}}}}});
 }
 
 function buildExpensesChart(){
@@ -2148,6 +2234,11 @@ function saveStock(){
     modifiedAt:new Date().toISOString(),
     purchaseDate:date
   });
+  // Backfill snapshots if purchase was in the past
+  if(date < todayStr()){
+    const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+    backfillSnapshots(date, shares*price*fxRate);
+  }
   save();closeModal();
 }
 
@@ -2163,6 +2254,11 @@ function saveLot(stockId){
   h.avgCost=calcAvgCost(h.lots);
   h.purchaseDate=h.lots.slice().sort((a,b)=>new Date(a.date)-new Date(b.date))[0].date;
   h.modifiedAt=new Date().toISOString();
+  // Backfill snapshots if lot purchase was in the past
+  if(date < todayStr()){
+    const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+    backfillSnapshots(date, shares*price*fxRate);
+  }
   save();closeModal();
 }
 
@@ -2298,6 +2394,11 @@ function saveCrypto(){
     modifiedAt:new Date().toISOString(),
     purchaseDate
   });
+  // Backfill snapshots if purchase was in the past
+  if(purchaseDate < todayStr()){
+    const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+    backfillSnapshots(purchaseDate, invested*fxRate);
+  }
   save();closeModal();
 }
 
@@ -2448,6 +2549,22 @@ function deleteItem(collection, id){
           acc.modifiedAt=new Date().toISOString();
           acc.updated=new Date().toLocaleDateString();
         }
+        // Reverse backfill on snapshots for past-dated transactions
+        if(item.date < todayStr()){
+          const dispAmt=toDisplay(item.convertedAmount??item.amount, item.convertedCurrency||db.settings.currency);
+          backfillSnapshots(item.date, item.type==='income' ? -dispAmt : dispAmt);
+        }
+      }
+      // If deleting a stock/crypto, reverse its cost basis from past snapshots
+      if(collection==='stocks' && item){
+        const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+        const cost=(+item.shares||0)*(+item.avgCost||0)*fxRate;
+        if(item.purchaseDate < todayStr()) backfillSnapshots(item.purchaseDate, -cost);
+      }
+      if(collection==='crypto' && item){
+        const fxRate=db.settings.currency!=='USD'?getFxRate():1;
+        const cost=(+item.investedUSD||0)*fxRate;
+        if(item.purchaseDate < todayStr()) backfillSnapshots(item.purchaseDate, -cost);
       }
       db[collection] = db[collection].filter(i=>i.id!==id);
       save();
@@ -3039,6 +3156,8 @@ applyTheme(db.settings.theme || 'dark');
 // Apply monthly interest for auto-interest accounts (safe — skips if already done this month)
 applyMonthlyInterest();
 applyMonthlyFees();
+// Record today's net worth snapshot (safe — overwrites if already exists today)
+recordSnapshot();
 refreshAll();
 updateSettingsUI();
 initGoogleAuth();
