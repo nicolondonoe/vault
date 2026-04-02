@@ -75,6 +75,11 @@
   .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;min-width:0;}
   .chart-card.wide{grid-column:1/-1;}
   .chart-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text);}
+  .chart-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .chart-title-row .chart-title{margin-bottom:0;}
+  .pie-toggle{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:6px;overflow:hidden;flex-shrink:0;}
+  .pie-toggle-btn{background:none;border:none;padding:3px 9px;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);cursor:pointer;transition:background 0.15s,color 0.15s;}
+  .pie-toggle-btn.active{background:var(--accent3);color:#fff;}
   .chart-wrap{position:relative;height:220px;}.chart-wrap.tall{height:300px;}
   /* Data cards */
   .data-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px;}
@@ -388,7 +393,7 @@
       <span class="theme-toggle-icon" id="theme-icon">☀</span>
       <span id="theme-label">Light Mode</span>
     </button>
-    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.8.3</span></div>
+    <div class="sidebar-footer">All data stored locally.<br>No accounts. No fees. Ever.<br><span style="opacity:0.5;font-size:10px;">v0.8.5</span></div>
     <div class="sync-bar">
       <button class="sync-btn" id="sync-btn" onclick="handleSyncClick()">
         <span id="sync-btn-icon">☁</span>
@@ -436,8 +441,8 @@
         <div class="stat-grid" id="dash-stats"></div>
         <div class="chart-section-header"><span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Charts</span><button id="btn-toggle-dash" class="chart-toggle-btn" onclick="toggleCharts('dash-chart-grid','btn-toggle-dash')" title="Toggle charts"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,1 7,5 3,9"/></svg></button></div>
         <div class="chart-grid" id="dash-chart-grid">
-          <div class="chart-card"><div class="chart-title">Portfolio Allocation</div><div class="chart-wrap"><canvas id="chart-allocation"></canvas></div></div>
-          <div class="chart-card"><div class="chart-title">Asset Distribution</div><div class="chart-wrap"><canvas id="chart-assets"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title-row"><div class="chart-title">Portfolio Allocation</div><div class="pie-toggle"><button class="pie-toggle-btn active" data-mode="value" onclick="setPieMode('value')">Value</button><button class="pie-toggle-btn" data-mode="pct" onclick="setPieMode('pct')">%</button></div></div><div class="chart-wrap"><canvas id="chart-allocation"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title-row"><div class="chart-title">Asset Distribution</div><div class="pie-toggle"><button class="pie-toggle-btn active" data-mode="value" onclick="setPieMode('value')">Value</button><button class="pie-toggle-btn" data-mode="pct" onclick="setPieMode('pct')">%</button></div></div><div class="chart-wrap"><canvas id="chart-assets"></canvas></div></div>
           <div class="chart-card wide"><div class="chart-title">Net Worth Over Time</div><div class="chart-wrap tall"><canvas id="chart-networth"></canvas></div></div>
         </div>
       </div>
@@ -454,7 +459,7 @@
       <div id="accounts-chart-section" style="display:none">
         <div class="chart-section-header"><span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Charts</span><button id="btn-toggle-accounts" class="chart-toggle-btn" onclick="toggleCharts('accounts-chart-grid','btn-toggle-accounts')" title="Toggle charts"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,1 7,5 3,9"/></svg></button></div>
         <div class="chart-grid" id="accounts-chart-grid">
-          <div class="chart-card"><div class="chart-title">Balance Distribution</div><div class="chart-wrap"><canvas id="chart-accounts-dist"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title-row"><div class="chart-title">Balance Distribution</div><div class="pie-toggle"><button class="pie-toggle-btn active" data-mode="value" onclick="setPieMode('value')">Value</button><button class="pie-toggle-btn" data-mode="pct" onclick="setPieMode('pct')">%</button></div></div><div class="chart-wrap"><canvas id="chart-accounts-dist"></canvas></div></div>
         </div>
       </div>
       <div class="data-card">
@@ -483,7 +488,7 @@
       <div class="chart-section-header"><span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Charts</span><button id="btn-toggle-stocks" class="chart-toggle-btn" onclick="toggleCharts('stocks-chart-grid','btn-toggle-stocks')" title="Toggle charts"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,1 7,5 3,9"/></svg></button></div>
       <div class="chart-grid" id="stocks-chart-grid">
         <div class="chart-card wide"><div class="chart-title">Portfolio Value Over Time</div><div class="chart-wrap tall"><canvas id="chart-stocks-timeline"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">Holdings Breakdown</div><div class="chart-wrap"><canvas id="chart-stocks-pie"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title-row"><div class="chart-title">Holdings Breakdown</div><div class="pie-toggle"><button class="pie-toggle-btn active" data-mode="value" onclick="setPieMode('value')">Value</button><button class="pie-toggle-btn" data-mode="pct" onclick="setPieMode('pct')">%</button></div></div><div class="chart-wrap"><canvas id="chart-stocks-pie"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Gain / Loss by Holding</div><div class="chart-wrap"><canvas id="chart-stocks-gainloss"></canvas></div></div>
       </div>
       <div class="data-card">
@@ -513,7 +518,7 @@
       <div class="chart-section-header"><span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Charts</span><button id="btn-toggle-crypto" class="chart-toggle-btn" onclick="toggleCharts('crypto-chart-grid','btn-toggle-crypto')" title="Toggle charts"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,1 7,5 3,9"/></svg></button></div>
       <div class="chart-grid" id="crypto-chart-grid">
         <div class="chart-card wide"><div class="chart-title">Portfolio Value Over Time</div><div class="chart-wrap tall"><canvas id="chart-crypto-timeline"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">Holdings Breakdown</div><div class="chart-wrap"><canvas id="chart-crypto-pie"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title-row"><div class="chart-title">Holdings Breakdown</div><div class="pie-toggle"><button class="pie-toggle-btn active" data-mode="value" onclick="setPieMode('value')">Value</button><button class="pie-toggle-btn" data-mode="pct" onclick="setPieMode('pct')">%</button></div></div><div class="chart-wrap"><canvas id="chart-crypto-pie"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Gain / Loss by Asset</div><div class="chart-wrap"><canvas id="chart-crypto-gainloss"></canvas></div></div>
       </div>
       <div class="data-card">
@@ -541,7 +546,7 @@
       <div class="chart-section-header"><span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Charts</span><button id="btn-toggle-cf" class="chart-toggle-btn" onclick="toggleCharts('cf-chart-grid','btn-toggle-cf')" title="Toggle charts"><svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,1 7,5 3,9"/></svg></button></div>
       <div class="chart-grid" id="cf-chart-grid">
         <div class="chart-card wide"><div class="chart-title">Monthly Cash Flow</div><div class="chart-wrap tall"><canvas id="chart-cashflow"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">Expense Breakdown</div><div class="chart-wrap"><canvas id="chart-expenses"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title-row"><div class="chart-title">Expense Breakdown</div><div class="pie-toggle"><button class="pie-toggle-btn active" data-mode="value" onclick="setPieMode('value')">Value</button><button class="pie-toggle-btn" data-mode="pct" onclick="setPieMode('pct')">%</button></div></div><div class="chart-wrap"><canvas id="chart-expenses"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Income vs Expenses</div><div class="chart-wrap"><canvas id="chart-incvexp"></canvas></div></div>
       </div>
       <div class="data-card">
@@ -632,7 +637,7 @@
         <div class="settings-section-title">Data</div>
         <div class="settings-row" style="opacity:0.5;pointer-events:none;">
           <div><div class="settings-row-label">App Version</div><div class="settings-row-sub">Schema v7</div></div>
-          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.8.3</span>
+          <span style="font-family:'DM Mono',monospace;font-size:13px;">v0.8.5</span>
         </div>
         <div class="settings-row">
           <div><div class="settings-row-label">Export Backup</div><div class="settings-row-sub">Download all data as JSON</div></div>
@@ -704,7 +709,7 @@ const CRYPTO_LIST = [
 // ─── DB ───────────────────────────────────────────────────────────────────────
 const DB_KEY = 'vault_data_v3';
 const SCHEMA_VERSION = 8;
-const APP_VERSION = '0.8.3';
+const APP_VERSION = '0.8.5';
 const SUPPORTED_CURRENCIES = ['COP','USD','EUR'];
 
 const DEFAULT_CATEGORIES = {
@@ -856,23 +861,24 @@ function setManualFx(){
   if(isNaN(v)||v<=0)return alert('Enter a valid rate');
   db.settings.fxRate=v;save();updateSettingsUI();
 }
-async function fetchFxRate(){
+async function fetchFxRate(silent=false){
   if(db.settings.currency==='USD')return;
   const btn=document.getElementById('fx-fetch-btn');
-  btn.textContent='⟳ Fetching...';btn.classList.add('loading');
+  if(btn&&!silent){btn.textContent='⟳ Fetching...';btn.classList.add('loading');}
+  const persist = silent ? silentSave : ()=>{save();};
   try{
     const res=await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
     const data=await res.json();
     const rate=data.rates[db.settings.currency];
-    if(rate){db.settings.fxRate=rate;save();updateSettingsUI();btn.textContent='✓ Updated';setTimeout(()=>{btn.textContent='⟳ Fetch';btn.classList.remove('loading');},2000);return;}
+    if(rate){db.settings.fxRate=rate;persist();updateSettingsUI();if(btn&&!silent){btn.textContent='✓ Updated';setTimeout(()=>{btn.textContent='⟳ Fetch';btn.classList.remove('loading');},2000);}return;}
     throw new Error();
   }catch(e){
     try{
       const res2=await fetch(`https://api.frankfurter.app/latest?from=USD&to=${db.settings.currency}`);
       const d2=await res2.json();const r2=d2.rates[db.settings.currency];
-      if(r2){db.settings.fxRate=r2;save();updateSettingsUI();btn.textContent='✓ Updated';setTimeout(()=>{btn.textContent='⟳ Fetch';btn.classList.remove('loading');},2000);return;}
+      if(r2){db.settings.fxRate=r2;persist();updateSettingsUI();if(btn&&!silent){btn.textContent='✓ Updated';setTimeout(()=>{btn.textContent='⟳ Fetch';btn.classList.remove('loading');},2000);}return;}
     }catch(e2){}
-    btn.textContent='Failed';btn.classList.remove('loading');setTimeout(()=>{btn.textContent='⟳ Fetch';},3000);
+    if(btn&&!silent){btn.textContent='Failed';btn.classList.remove('loading');setTimeout(()=>{btn.textContent='⟳ Fetch';},3000);}
   }
 }
 function fxBannerHTML(){
@@ -922,6 +928,41 @@ function getLegendColor(){return document.body.classList.contains('light')?'#1a1
 function getBorderColor(){return document.body.classList.contains('light')?'#f0f0f6':'#12121a';}
 function getTickStyle(){return {color:getTickColor(),font:{family:'DM Mono',size:11}};}
 
+// ─── PIE TOOLTIP MODE ─────────────────────────────────────────────────────────
+let pieTooltipMode = 'value'; // 'value' | 'pct'
+
+function setPieMode(mode){
+  pieTooltipMode = mode;
+  document.querySelectorAll('.pie-toggle-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  // Rebuild all pie/doughnut charts to pick up new tooltip
+  buildAllocationChart();
+  buildAssetsChart();
+  buildAccountsDistChart();
+  buildStocksPie();
+  buildCryptoPie();
+  buildExpensesChart();
+}
+
+function pieTooltipLabel(c){
+  const dataset = c.chart.data.datasets[c.datasetIndex];
+  const total = dataset.data.reduce((s, v) => s + (v||0), 0);
+  const val = c.parsed;
+  if(pieTooltipMode === 'pct'){
+    const pct = total > 0 ? (val / total * 100).toFixed(1) : '0.0';
+    return ` ${c.label}: ${pct}%`;
+  }
+  return ` ${c.label}: ${fmt(val)}`;
+}
+
+function pieToggleHTML(){
+  return `<div class="pie-toggle">
+    <button class="pie-toggle-btn${pieTooltipMode==='value'?' active':''}" data-mode="value" onclick="setPieMode('value')">Value</button>
+    <button class="pie-toggle-btn${pieTooltipMode==='pct'?' active':''}" data-mode="pct" onclick="setPieMode('pct')">%</button>
+  </div>`;
+}
+
 function buildAllocationChart(){
   destroyChart('allocation');
   const ctx=document.getElementById('chart-allocation');if(!ctx)return;
@@ -934,7 +975,7 @@ function buildAllocationChart(){
   if(stocks){labels.push('Stocks/ETFs');data.push(stocks);colors.push('#7c6dfa');}
   if(crypto){labels.push('Crypto');data.push(crypto);colors.push('#fa6d9e');}
   if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
-  charts['allocation']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:14}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'65%'}});
+  charts['allocation']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:14}},tooltip:{callbacks:{label:pieTooltipLabel}}},cutout:'65%'}});
 }
 
 function buildAssetsChart(){
@@ -945,7 +986,7 @@ function buildAssetsChart(){
   const data=[...db.stocks.map(h=>(+h.shares||0)*(+h.currentPrice||0)*fxRate),...db.crypto.map(h=>(+h.currentValueUSD||0)*fxRate)];
   const colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
-  charts['assets']=new Chart(ctx,{type:'pie',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}}}});
+  charts['assets']=new Chart(ctx,{type:'pie',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:12},padding:10}},tooltip:{callbacks:{label:pieTooltipLabel}}}}});
 }
 
 // Generate timeline data points for a set of holdings
@@ -1084,7 +1125,7 @@ function buildStocksPie(){
   const colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!labels.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
   const isMobile=window.innerWidth<=768;
-  charts['stocks-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:12},padding:isMobile?6:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
+  charts['stocks-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:12},padding:isMobile?6:10}},tooltip:{callbacks:{label:pieTooltipLabel}}},cutout:'60%'}});
 }
 
 function buildStocksGainLoss(){
@@ -1120,7 +1161,7 @@ function buildCryptoPie(){
   const colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!labels.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
   const isMobile=window.innerWidth<=768;
-  charts['crypto-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:12},padding:isMobile?6:10}},tooltip:{callbacks:{label:c=>` ${fmt(c.parsed)}`}}},cutout:'60%'}});
+  charts['crypto-pie']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:12},padding:isMobile?6:10}},tooltip:{callbacks:{label:pieTooltipLabel}}},cutout:'60%'}});
 }
 
 function buildCryptoGainLoss(){
@@ -1173,7 +1214,7 @@ function buildExpensesChart(){
   const labels=Object.keys(by),data=Object.values(by),colors=labels.map((_,i)=>PAL[i%PAL.length]);
   if(!data.length){labels.push('No data');data.push(1);colors.push('#2a2a3d');}
   const isMobile=window.innerWidth<=768;
-  charts['expenses']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:11},padding:isMobile?6:8}}},cutout:'60%'}});
+  charts['expenses']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:11},padding:isMobile?6:8}},tooltip:{callbacks:{label:pieTooltipLabel}}},cutout:'60%'}});
 }
 
 function buildIncVsExpChart(){
@@ -1508,7 +1549,7 @@ function buildAccountsDistChart(){
   const data=visible.map(a=>toDisplay(+a.balance||0, a.currency||db.settings.currency));
   const colors=visible.map((_,i)=>PAL[i%PAL.length]);
   const isMobile=window.innerWidth<=768;
-  charts['accounts-dist']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:11},padding:isMobile?6:10}},tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.parsed)}`}}},cutout:'60%'}});
+  charts['accounts-dist']=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:getBorderColor()}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:isMobile?'bottom':'right',labels:{color:getLegendColor(),font:{family:'DM Mono',size:isMobile?10:11},padding:isMobile?6:10}},tooltip:{callbacks:{label:pieTooltipLabel}}},cutout:'60%'}});
 }
 
 function refreshAccounts(){
@@ -3199,13 +3240,19 @@ async function pullFromDrive() {
 const _localSave = save;
 function save() {
   recordSnapshot(); // record net worth before writing
-  db.modifiedAt = new Date().toISOString();
+  db.modifiedAt = new Date().toISOString(); // stamp only on genuine user edits
   localStorage.setItem(DB_KEY, JSON.stringify(db));
   refreshAll();
   if (gToken) {
     clearTimeout(save._driveTimer);
     save._driveTimer = setTimeout(() => syncToDrive(), 1500);
   }
+}
+
+// Silent save — writes to localStorage without stamping modifiedAt or pushing to Drive
+// Used for automatic operations (snapshots, interest, FX rate) that shouldn't affect merge tiebreaking
+function silentSave() {
+  localStorage.setItem(DB_KEY, JSON.stringify(db));
 }
 
 // ─── THEME ────────────────────────────────────────────────────────────────────
@@ -3361,14 +3408,20 @@ applyTheme(db.settings.theme || 'dark');
 // Apply monthly interest for auto-interest accounts (safe — skips if already done this month)
 applyMonthlyInterest();
 applyMonthlyFees();
-// Record today's net worth snapshot (safe — overwrites if already exists today)
-recordSnapshot();
+// Record today's net worth snapshot silently — doesn't stamp modifiedAt or push to Drive
+if(!db.networthHistory) db.networthHistory = [];
+const _today = todayStr();
+const _nw = calcNetWorth();
+const _existing = db.networthHistory.findIndex(s => s.date === _today);
+if(_existing >= 0){ db.networthHistory[_existing].value = _nw; }
+else { db.networthHistory.push({date:_today, value:_nw}); db.networthHistory.sort((a,b)=>a.date.localeCompare(b.date)); }
+silentSave();
 refreshAll();
 updateSettingsUI();
 initGoogleAuth();
-// Auto-fetch FX rate on startup if currency isn't USD
+// Auto-fetch FX rate on startup — silentSave so we don't stamp modifiedAt
 if (db.settings.currency !== 'USD') {
-  fetchFxRate().then(() => {
+  fetchFxRate(true).then(() => {
     refreshAll();
   });
 }
